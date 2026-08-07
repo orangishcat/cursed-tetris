@@ -5,4 +5,6 @@ edition = "2024"
 
 [dependencies]
 crossterm = "0.29.0"
+derivative = "2.2.0"
+rand = "0.10.2"
 ratatui = "0.30.2"
