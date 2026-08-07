@@ -110,5 +110,5 @@ jobs:
               --draft \
               --generate-notes \
               --target "$GITHUB_SHA" \
-              --title "$PACKAGE_NAME $tag"
+              --title "$tag"
           fi
