@@ -36,9 +36,13 @@ jobs:
         shell: bash
         run: |
           metadata="$(cargo metadata --no-deps --format-version 1)"
-          root_id="$(jq -r '.resolve.root' <<< "$metadata")"
-          echo "name=$(jq -r --arg id "$root_id" '.packages[] | select(.id == $id) | .name' <<< "$metadata")" >> "$GITHUB_OUTPUT"
-          echo "version=$(jq -r --arg id "$root_id" '.packages[] | select(.id == $id) | .version' <<< "$metadata")" >> "$GITHUB_OUTPUT"
+          package_id="$(jq -r '.workspace_default_members[0] // .workspace_members[0]' <<< "$metadata")"
+          name="$(jq -r --arg id "$package_id" '.packages[] | select(.id == $id) | .name' <<< "$metadata")"
+          version="$(jq -r --arg id "$package_id" '.packages[] | select(.id == $id) | .version' <<< "$metadata")"
+          test -n "$name"
+          test -n "$version"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Build release binary
         run: cargo build --release --locked
@@ -77,9 +81,11 @@ jobs:
         shell: bash
         run: |
           metadata="$(cargo metadata --no-deps --format-version 1)"
-          root_id="$(jq -r '.resolve.root' <<< "$metadata")"
-          name="$(jq -r --arg id "$root_id" '.packages[] | select(.id == $id) | .name' <<< "$metadata")"
-          version="$(jq -r --arg id "$root_id" '.packages[] | select(.id == $id) | .version // "0.1.0"' <<< "$metadata")"
+          package_id="$(jq -r '.workspace_default_members[0] // .workspace_members[0]' <<< "$metadata")"
+          name="$(jq -r --arg id "$package_id" '.packages[] | select(.id == $id) | .name' <<< "$metadata")"
+          version="$(jq -r --arg id "$package_id" '.packages[] | select(.id == $id) | .version' <<< "$metadata")"
+          test -n "$name"
+          version="${version:-0.1.0}"
           echo "name=${name}" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
