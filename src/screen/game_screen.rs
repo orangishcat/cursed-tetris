@@ -5,9 +5,11 @@ use derivative::Derivative;
 use ratatui::{
     Frame,
     layout::{Constraint, Flex, HorizontalAlignment, Layout},
-    style::Color,
+    style::{Color, Style},
+    text::Line,
     widgets::{Block, Paragraph},
 };
+use tui_big_text::{BigText, PixelSize};
 
 use crate::{
     screen::{
@@ -32,13 +34,27 @@ impl GameScreen {
         .flex(Flex::Center)
         .areas(frame.area());
 
-        let [left, right] = Layout::horizontal([
+        let [left, center, right] = Layout::horizontal([
+            Constraint::Length(5),
             Constraint::Length((state::BOARD_WIDTH * state::SCALE_X + 2) as u16),
             Constraint::Length(24),
         ])
         .spacing(2)
         .flex(Flex::Center)
         .areas(row);
+
+        let lines: Vec<Line<'static>> = " TETRIS"
+            .chars()
+            .map(|character| Line::from(character.to_string()))
+            .collect();
+
+        let vertical_title = BigText::builder()
+            .pixel_size(PixelSize::Sextant)
+            .centered()
+            .style(Style::default())
+            .lines(lines)
+            .build();
+        frame.render_widget(vertical_title, left);
 
         let game_area = state.construct_field();
         let [score_area, level_area, placed_pieces_area] = Layout::vertical([
@@ -48,7 +64,7 @@ impl GameScreen {
         ])
         .areas(right);
 
-        frame.render_widget(game_area, left);
+        frame.render_widget(game_area, center);
         for (area, title, value) in [
             (score_area, "Score", state.score.to_string()),
             (level_area, "Level", state.level.to_string()),
