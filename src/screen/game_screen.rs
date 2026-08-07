@@ -9,7 +9,10 @@ use ratatui::{
     widgets::{Block, Paragraph},
 };
 
-use crate::state::{self, State};
+use crate::{
+    piece::Piece,
+    state::{self, BOARD_HEIGHT, BOARD_WIDTH, State},
+};
 
 #[derive(Derivative)]
 #[derivative(Default)]
@@ -21,13 +24,13 @@ pub struct GameScreen {
 impl GameScreen {
     pub fn draw(&self, state: &mut State, frame: &mut Frame) {
         let [row] = Layout::vertical([Constraint::Length(
-            (state::BOARD_HEIGHT * state::SCALE_Y) as u16,
+            (state::BOARD_HEIGHT * state::SCALE_Y + 2) as u16,
         )])
         .flex(Flex::Center)
         .areas(frame.area());
 
         let [left, right] = Layout::horizontal([
-            Constraint::Length((state::BOARD_WIDTH * state::SCALE_X) as u16),
+            Constraint::Length((state::BOARD_WIDTH * state::SCALE_X + 2) as u16),
             Constraint::Length(12),
         ])
         .spacing(2)
@@ -50,20 +53,20 @@ impl GameScreen {
     }
 
     pub fn update(&mut self, state: &mut State) {
-        self.update_gravity(state);
         self.check_collision(state);
+        self.update_gravity(state);
     }
 
     fn check_collision(&mut self, state: &mut State) {
         if self.has_collided(state) {
             state.blit_active_piece_to_tiles();
-            state.reset_active_piece();
-            return;
+            state.check_rows();
+            state.next_piece();
         }
     }
 
     fn has_collided(&mut self, state: &mut State) -> bool {
-        let p = &state.active_piece;
+        let p = state.piece();
         for [abs_x, abs_y] in p.abs_pos() {
             if abs_y - 1 >= state::BOARD_HEIGHT as i8 {
                 continue;
@@ -80,23 +83,62 @@ impl GameScreen {
             return;
         }
 
-        state.active_piece.nudge(0, -1);
+        state.piece().nudge(0, -1);
         self.last_gravity_update = Instant::now();
     }
 
     pub fn handle_keypress(&self, state: &mut State, key: &KeyEvent) {
         match key.code {
-            KeyCode::Up | KeyCode::Char('w') | KeyCode::Char('i') => state.active_piece.rotate(),
+            KeyCode::Up | KeyCode::Char('w') | KeyCode::Char('i') => self.rotate_if_valid(state),
             KeyCode::Left | KeyCode::Char('a') | KeyCode::Char('j') => {
-                state.active_piece.nudge(-1, 0)
+                self.move_if_valid(state, -1, 0)
             }
             KeyCode::Right | KeyCode::Char('d') | KeyCode::Char('l') => {
-                state.active_piece.nudge(1, 0)
+                self.move_if_valid(state, 1, 0)
             }
             KeyCode::Down | KeyCode::Char('s') | KeyCode::Char('k') => {
-                state.active_piece.nudge(0, -1);
+                self.move_if_valid(state, 0, -1);
             }
             _ => {}
         }
+    }
+
+    fn has_lost(&self, state: &State) -> bool {
+        for x in 0..BOARD_WIDTH {
+            if state.tiles[x][BOARD_HEIGHT - 1] != Color::Reset {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    fn move_if_valid(&self, state: &mut State, x: i8, y: i8) {
+        state.piece().nudge(x, y);
+        if !self.validate(state) {
+            state.piece().nudge(-x, -y);
+        }
+    }
+
+    fn rotate_if_valid(&self, state: &mut State) {
+        state.piece().rotate();
+        if !self.validate(state) {
+            state.piece().unrotate();
+        }
+    }
+
+    fn validate(&self, state: &mut State) -> bool {
+        for [abs_x, abs_y] in state.piece().abs_pos() {
+            let x_size = abs_x as usize;
+            let y_size = abs_y as usize;
+            if abs_x < 0
+                || abs_y < 0
+                || x_size >= BOARD_WIDTH
+                || y_size >= BOARD_HEIGHT
+                || state.tiles[x_size][y_size] != Color::Reset
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }
