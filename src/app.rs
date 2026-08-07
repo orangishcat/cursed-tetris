@@ -46,6 +46,7 @@ impl App {
             }
 
             self.screen.update(&mut self.state);
+            self.should_quit |= self.screen.should_quit();
         }
         Ok(())
     }

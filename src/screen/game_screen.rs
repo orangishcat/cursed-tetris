@@ -9,7 +9,13 @@ use ratatui::{
     widgets::{Block, Paragraph},
 };
 
-use crate::state::{self, BOARD_HEIGHT, BOARD_WIDTH, State};
+use crate::{
+    screen::{
+        AppScreen::{self, Lose},
+        lose_screen::LoseScreen,
+    },
+    state::{self, BOARD_HEIGHT, BOARD_WIDTH, State},
+};
 
 #[derive(Derivative)]
 #[derivative(Default)]
@@ -62,12 +68,13 @@ impl GameScreen {
         }
     }
 
-    pub fn update(&mut self, state: &mut State) {
+    pub fn update(&mut self, state: &mut State) -> Option<AppScreen> {
         let collided = self.check_collision(state);
         if collided && state.game_ended {
-            return;
+            return Some(Lose(LoseScreen::default()));
         }
         self.update_gravity(state);
+        None
     }
 
     fn check_collision(&mut self, state: &mut State) -> bool {
