@@ -19,6 +19,7 @@ pub const BOARD_WIDTH: usize = 10;
 pub const BOARD_HEIGHT: usize = 20;
 pub const SCALE_X: usize = 4;
 pub const SCALE_Y: usize = 2;
+pub const NEXT_LOOKUP: usize = 3;
 
 #[derive(Derivative)]
 #[derivative(Default)]
@@ -54,9 +55,10 @@ impl State {
     pub fn next_piece(&mut self) {
         self.piece().pos = [BOARD_WIDTH as i8 / 2, BOARD_HEIGHT as i8];
         self.piece_queue_ind += 1;
-        if self.piece_queue_ind >= piece::QUEUE_SIZE - 3 {
+        if self.piece_queue_ind >= piece::QUEUE_SIZE - NEXT_LOOKUP {
             self.piece_queue_ind = 0;
-            self.piece_queue.shuffle(&mut rand::rng());
+            self.piece_queue.rotate_right(NEXT_LOOKUP);
+            self.piece_queue[NEXT_LOOKUP..].shuffle(&mut rand::rng());
         }
 
         self.placed_pieces += 1;
@@ -77,35 +79,36 @@ impl State {
     }
 
     pub fn construct_field(&mut self) -> Paragraph<'static> {
-        let lines: Vec<Line<'static>> = (0..BOARD_HEIGHT * SCALE_Y)
-            .map(|screen_y| {
-                let spans: Vec<Span<'static>> = (0..BOARD_WIDTH * SCALE_X)
-                    .map(|screen_x| {
-                        let tile_y = BOARD_HEIGHT - 1 - screen_y / SCALE_Y;
-                        let tile_x = screen_x / SCALE_X;
-                        let active = self.piece().is_tile_active(tile_x as i8, tile_y as i8);
-                        let col = if !active {
-                            self.tiles[tile_x][tile_y]
+        let mut lines = Vec::new();
+
+        for y in (0..BOARD_HEIGHT).rev() {
+            let spans: Vec<Span<'static>> = (0..BOARD_WIDTH)
+                .map(|x| {
+                    let active = self.piece().is_tile_active(x as i8, y as i8);
+                    let col = if !active {
+                        self.tiles[x][y]
+                    } else {
+                        self.piece().color()
+                    };
+
+                    Span::styled(
+                        if active {
+                            LIGHT_STR.repeat(SCALE_X)
+                        } else if col != Color::Reset {
+                            SOLID_STR.repeat(SCALE_X)
                         } else {
-                            self.piece().color()
-                        };
-
-                        Span::styled(
-                            if active {
-                                LIGHT_STR
-                            } else if col != Color::Reset {
-                                SOLID_STR
-                            } else {
-                                BLANK_STR
-                            },
-                            Style::default().fg(col),
-                        )
-                    })
-                    .collect();
-
-                Line::from(spans)
-            })
-            .collect();
+                            BLANK_STR.repeat(SCALE_X)
+                        },
+                        Style::default().fg(col),
+                    )
+                })
+                .collect();
+            let line = Line::from(spans);
+            for _ in 1..SCALE_Y {
+                lines.push(line.clone());
+            }
+            lines.push(line);
+        }
 
         Paragraph::new(lines).block(
             Block::bordered()

@@ -4,7 +4,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use derivative::Derivative;
 use ratatui::{
     Frame,
-    layout::{Constraint, Flex, HorizontalAlignment, Layout},
+    layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect},
     style::{Color, Style},
     text::Line,
     widgets::{Block, Paragraph},
@@ -16,7 +16,7 @@ use crate::{
         AppScreen::{self, Lose},
         lose_screen::LoseScreen,
     },
-    state::{self, BOARD_HEIGHT, BOARD_WIDTH, State},
+    state::{self, BOARD_HEIGHT, BOARD_WIDTH, NEXT_LOOKUP, SCALE_X, SCALE_Y, State},
 };
 
 #[derive(Derivative)]
@@ -57,10 +57,11 @@ impl GameScreen {
         frame.render_widget(vertical_title, left);
 
         let game_area = state.construct_field();
-        let [score_area, level_area, placed_pieces_area] = Layout::vertical([
+        let [score_area, level_area, placed_pieces_area, next_area] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(3),
+            Constraint::Length(SCALE_Y as u16 * 4 * NEXT_LOOKUP as u16),
         ])
         .areas(right);
 
@@ -82,6 +83,21 @@ impl GameScreen {
             frame.render_widget(block, area);
             frame.render_widget(Paragraph::new(value).centered(), content_area);
         }
+
+        let next_block = Block::bordered()
+            .title("Next")
+            .title_alignment(HorizontalAlignment::Center);
+        let piece_spaces: [Rect; NEXT_LOOKUP] =
+            Layout::vertical([Constraint::Length(6)].repeat(NEXT_LOOKUP))
+                .spacing(SCALE_Y as i16)
+                .areas(next_block.inner(next_area));
+        for i in 0..NEXT_LOOKUP {
+            frame.render_widget(
+                state.piece_queue[state.piece_queue_ind + i + 1].as_widget(),
+                piece_spaces[i],
+            );
+        }
+        frame.render_widget(next_block, next_area);
     }
 
     pub fn update(&mut self, state: &mut State) -> Option<AppScreen> {
@@ -107,6 +123,9 @@ impl GameScreen {
         let p = state.piece();
         for [abs_x, abs_y] in p.abs_pos() {
             if abs_y - 1 >= state::BOARD_HEIGHT as i8 {
+                continue;
+            }
+            if abs_x < 0 || abs_x >= state::BOARD_WIDTH as i8 {
                 continue;
             }
             if abs_y <= 0 || state.tiles[abs_x as usize][abs_y as usize - 1] != Color::Reset {
@@ -164,10 +183,12 @@ impl GameScreen {
         for [abs_x, abs_y] in state.piece().abs_pos() {
             let x_size = abs_x as usize;
             let y_size = abs_y as usize;
+            if y_size >= BOARD_HEIGHT {
+                continue;
+            }
             if abs_x < 0
                 || abs_y < 0
                 || x_size >= BOARD_WIDTH
-                || y_size >= BOARD_HEIGHT
                 || state.tiles[x_size][y_size] != Color::Reset
             {
                 return false;

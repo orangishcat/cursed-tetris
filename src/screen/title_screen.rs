@@ -4,13 +4,13 @@ use ratatui::{
     Frame,
     layout::{Constraint, Flex, Layout},
     style::{Color, Modifier, Style},
-    text::{Line, Span},
+    text::Line,
     widgets::{Block, BorderType, Paragraph},
 };
 use tui_big_text::{BigText, PixelSize};
 
 use crate::{
-    piece::{PIECE_COLOR, PIECE_LAYOUTS},
+    piece::{PIECE_LAYOUTS, Piece},
     screen::{
         AppScreen::{self, Game, Quit},
         game_screen::GameScreen,
@@ -37,7 +37,7 @@ impl MenuChoice {
 pub struct TitleScreen {
     selected: MenuChoice,
     activated: Option<MenuChoice>,
-    piece_id: usize,
+    piece_widget: Paragraph<'static>,
 }
 
 impl Default for TitleScreen {
@@ -45,7 +45,8 @@ impl Default for TitleScreen {
         Self {
             selected: MenuChoice::default(),
             activated: None,
-            piece_id: rand::rng().random_range(0..PIECE_LAYOUTS.len()),
+            piece_widget: Piece::from_id(rand::rng().random_range(0..PIECE_LAYOUTS.len()))
+                .as_widget(),
         }
     }
 }
@@ -108,34 +109,7 @@ impl TitleScreen {
         let [piece_area] = Layout::vertical([Constraint::Length(4)])
             .flex(Flex::Center)
             .areas(piece_area);
-        frame.render_widget(self.piece_widget(), piece_area);
-    }
-
-    fn piece_widget(&self) -> Paragraph<'static> {
-        let layout = PIECE_LAYOUTS[self.piece_id];
-        let min_x = layout.iter().map(|position| position[0]).min().unwrap_or(0);
-        let max_x = layout.iter().map(|position| position[0]).max().unwrap_or(0);
-        let min_y = layout.iter().map(|position| position[1]).min().unwrap_or(0);
-        let max_y = layout.iter().map(|position| position[1]).max().unwrap_or(0);
-        let color = PIECE_COLOR[self.piece_id];
-        let mut lines = Vec::new();
-
-        for y in (min_y..=max_y).rev() {
-            let spans: Vec<Span<'static>> = (min_x..=max_x)
-                .map(|x| {
-                    let filled = layout.contains(&[x, y]);
-                    Span::styled(
-                        if filled { "████" } else { "    " },
-                        Style::default().fg(color),
-                    )
-                })
-                .collect();
-            let line = Line::from(spans).centered();
-            lines.push(line.clone());
-            lines.push(line);
-        }
-
-        Paragraph::new(lines)
+        frame.render_widget(&self.piece_widget, piece_area);
     }
 
     pub fn handle_keypress(&mut self, _state: &mut State, key: &KeyEvent) {

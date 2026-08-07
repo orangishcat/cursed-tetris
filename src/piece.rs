@@ -1,5 +1,9 @@
-use crate::state::{self};
-use ratatui::style::Color;
+use crate::state::{self, BLANK_STR, NEXT_LOOKUP, SCALE_X, SCALE_Y, SOLID_STR};
+use ratatui::{
+    style::{Color, Style},
+    text::{Line, Span},
+    widgets::Paragraph,
+};
 
 pub type Position = [i8; 2];
 pub type PieceLayout = [Position; 4];
@@ -31,7 +35,7 @@ pub const PIECE_COLOR: [Color; 7] = [
     Color::White,
 ];
 
-pub const QUEUE_SIZE: usize = PIECE_LAYOUTS.len() * 2 - 3;
+pub const QUEUE_SIZE: usize = PIECE_LAYOUTS.len() * 2 + NEXT_LOOKUP;
 
 #[derive(Default)]
 pub struct Piece {
@@ -91,5 +95,55 @@ impl Piece {
             }
         }
         return false;
+    }
+    pub fn as_widget(&self) -> Paragraph<'static> {
+        let min_x = self
+            .layout
+            .iter()
+            .map(|position| position[0])
+            .min()
+            .unwrap_or(0);
+        let max_x = self
+            .layout
+            .iter()
+            .map(|position| position[0])
+            .max()
+            .unwrap_or(0);
+        let min_y = self
+            .layout
+            .iter()
+            .map(|position| position[1])
+            .min()
+            .unwrap_or(0);
+        let max_y = self
+            .layout
+            .iter()
+            .map(|position| position[1])
+            .max()
+            .unwrap_or(0);
+        let mut lines = Vec::new();
+
+        for y in (min_y..=max_y).rev() {
+            let spans: Vec<Span<'static>> = (min_x..=max_x)
+                .map(|x| {
+                    let filled = self.layout.contains(&[x, y]);
+                    Span::styled(
+                        if filled {
+                            SOLID_STR.repeat(SCALE_X)
+                        } else {
+                            BLANK_STR.repeat(SCALE_X)
+                        },
+                        Style::default().fg(self.color()),
+                    )
+                })
+                .collect();
+            let line = Line::from(spans).centered();
+            for _ in 1..SCALE_Y {
+                lines.push(line.clone());
+            }
+            lines.push(line);
+        }
+
+        Paragraph::new(lines)
     }
 }
