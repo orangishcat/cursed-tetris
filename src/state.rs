@@ -43,6 +43,7 @@ impl State {
     }
 
     pub fn next_piece(&mut self) {
+        self.piece().pos = [BOARD_WIDTH as i8 / 2, BOARD_HEIGHT as i8];
         self.piece_queue_ind += 1;
         if self.piece_queue_ind >= piece::QUEUE_SIZE - 3 {
             self.piece_queue_ind = 0;
@@ -118,8 +119,8 @@ impl State {
             }
 
             for column in &mut self.tiles {
-                column.copy_within(0..y, 1);
-                column[0] = Color::Reset;
+                column.copy_within(y + 1..BOARD_HEIGHT, y);
+                column[BOARD_HEIGHT - 1] = Color::Reset;
             }
             self.score += 10;
             // y needs rechecking, don't increment

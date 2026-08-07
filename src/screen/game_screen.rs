@@ -57,12 +57,14 @@ impl GameScreen {
         self.update_gravity(state);
     }
 
-    fn check_collision(&mut self, state: &mut State) {
-        if self.has_collided(state) {
+    fn check_collision(&mut self, state: &mut State) -> bool {
+        let collided = self.has_collided(state);
+        if collided {
             state.blit_active_piece_to_tiles();
             state.check_rows();
             state.next_piece();
         }
+        return collided;
     }
 
     fn has_collided(&mut self, state: &mut State) -> bool {
@@ -87,7 +89,7 @@ impl GameScreen {
         self.last_gravity_update = Instant::now();
     }
 
-    pub fn handle_keypress(&self, state: &mut State, key: &KeyEvent) {
+    pub fn handle_keypress(&mut self, state: &mut State, key: &KeyEvent) {
         match key.code {
             KeyCode::Up | KeyCode::Char('w') | KeyCode::Char('i') => self.rotate_if_valid(state),
             KeyCode::Left | KeyCode::Char('a') | KeyCode::Char('j') => {
@@ -98,6 +100,11 @@ impl GameScreen {
             }
             KeyCode::Down | KeyCode::Char('s') | KeyCode::Char('k') => {
                 self.move_if_valid(state, 0, -1);
+            }
+            KeyCode::Char(' ') => {
+                while !self.check_collision(state) {
+                    self.move_if_valid(state, 0, -1);
+                }
             }
             _ => {}
         }

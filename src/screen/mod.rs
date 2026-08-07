@@ -26,7 +26,7 @@ impl AppScreen {
             Self::Title(screen) => screen.update(state),
         }
     }
-    pub fn handle_keypress(&self, state: &mut State, key: &KeyEvent) {
+    pub fn handle_keypress(&mut self, state: &mut State, key: &KeyEvent) {
         match self {
             Self::Game(screen) => screen.handle_keypress(state, key),
             Self::Title(screen) => screen.handle_keypress(state, key),
