@@ -1,18 +1,14 @@
-mod input;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use std::io;
 
-use ratatui::{
-    layout::{Alignment, Constraint, Layout},
-    style::{Color, Modifier, Style},
-    text::Line,
-    widgets::{Block, Borders, Paragraph},
-    DefaultTerminal, Frame,
-};
+use ratatui::{DefaultTerminal, Frame};
+
+use crate::{screen::AppScreen, state::State};
 
 #[derive(Default)]
 pub struct App {
-    count: i32,
+    state: State,
+    screen: AppScreen,
     should_quit: bool,
 }
 
@@ -25,36 +21,8 @@ impl App {
         Ok(())
     }
 
-    pub fn draw(&self, frame: &mut Frame) {
-        let [header, body, footer] = Layout::vertical([
-            Constraint::Length(3),
-            Constraint::Fill(1),
-            Constraint::Length(3),
-        ])
-        .areas(frame.area());
-
-        let title = Paragraph::new("Ratatui Counter")
-            .alignment(Alignment::Center)
-            .block(Block::new().borders(Borders::ALL));
-
-        let counter = Paragraph::new(self.count.to_string())
-            .alignment(Alignment::Center)
-            .style(
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .block(Block::bordered().title(" Count "));
-
-        let help = Paragraph::new(Line::from(
-            "Left/Right: change count | r: reset | q: quit",
-        ))
-        .alignment(Alignment::Center)
-        .block(Block::new().borders(Borders::ALL));
-
-        frame.render_widget(title, header);
-        frame.render_widget(counter, body);
-        frame.render_widget(help, footer);
+    pub fn draw(&mut self, frame: &mut Frame) {
+        self.screen.draw(&mut self.state, frame);
     }
 
     pub fn handle_event(&mut self) -> io::Result<()> {
@@ -65,11 +33,8 @@ impl App {
             }
 
             match key.code {
-                KeyCode::Left => self.count -= 1,
-                KeyCode::Right => self.count += 1,
-                KeyCode::Char('r') => self.count = 0,
                 KeyCode::Char('q') | KeyCode::Esc => self.should_quit = true,
-                _ => {}
+                _ => self.screen.handle_keypress(&mut self.state, &key),
             }
         }
         Ok(())
