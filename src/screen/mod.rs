@@ -53,6 +53,6 @@ impl AppScreen {
 
 impl Default for AppScreen {
     fn default() -> Self {
-        Self::Game(GameScreen::default())
+        Self::Title(TitleScreen::default())
     }
 }
