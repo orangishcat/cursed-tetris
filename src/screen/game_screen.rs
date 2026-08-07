@@ -9,10 +9,7 @@ use ratatui::{
     widgets::{Block, Paragraph},
 };
 
-use crate::{
-    piece::Piece,
-    state::{self, BOARD_HEIGHT, BOARD_WIDTH, State},
-};
+use crate::state::{self, BOARD_HEIGHT, BOARD_WIDTH, State};
 
 #[derive(Derivative)]
 #[derivative(Default)]
@@ -102,7 +99,7 @@ impl GameScreen {
                 self.move_if_valid(state, 0, -1);
             }
             KeyCode::Char(' ') => {
-                while !self.check_collision(state) {
+                while !self.check_collision(state) && self.validate(state) {
                     self.move_if_valid(state, 0, -1);
                 }
             }

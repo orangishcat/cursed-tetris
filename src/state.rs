@@ -111,6 +111,7 @@ impl State {
 
     pub fn check_rows(&mut self) {
         let mut y = 0;
+        let mut row_bonus = 10;
         while y < BOARD_HEIGHT {
             let full_row = (0..BOARD_WIDTH).all(|x| self.tiles[x][y] != Color::Reset);
             if !full_row {
@@ -122,7 +123,8 @@ impl State {
                 column.copy_within(y + 1..BOARD_HEIGHT, y);
                 column[BOARD_HEIGHT - 1] = Color::Reset;
             }
-            self.score += 10;
+            self.score += row_bonus;
+            row_bonus += 10;
             // y needs rechecking, don't increment
         }
     }
