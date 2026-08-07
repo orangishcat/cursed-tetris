@@ -16,7 +16,7 @@ use crate::{
         AppScreen::{self, Lose},
         lose_screen::LoseScreen,
     },
-    state::{self, BOARD_HEIGHT, BOARD_WIDTH, NEXT_LOOKUP, SCALE_X, SCALE_Y, State},
+    state::{self, BOARD_HEIGHT, BOARD_WIDTH, NEXT_LOOKUP, SCALE_Y, State},
 };
 
 #[derive(Derivative)]
@@ -157,8 +157,13 @@ impl GameScreen {
                 self.move_if_valid(state, 0, -1);
             }
             KeyCode::Char(' ') => {
-                while !self.check_collision(state) && self.validate(state) {
+                let mut attempts = 0;
+                while !self.check_collision(state)
+                    && self.validate(state)
+                    && attempts < BOARD_HEIGHT
+                {
                     self.move_if_valid(state, 0, -1);
+                    attempts += 1;
                 }
             }
             _ => {}
