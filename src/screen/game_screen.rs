@@ -28,29 +28,45 @@ impl GameScreen {
 
         let [left, right] = Layout::horizontal([
             Constraint::Length((state::BOARD_WIDTH * state::SCALE_X + 2) as u16),
-            Constraint::Length(12),
+            Constraint::Length(24),
         ])
         .spacing(2)
         .flex(Flex::Center)
         .areas(row);
 
         let game_area = state.construct_field();
-        let score_text = state.score.to_string();
-
-        let [score_area] = Layout::vertical([Constraint::Length(3)]).areas(right);
-
-        let block = Block::bordered()
-            .title("Score")
-            .title_alignment(HorizontalAlignment::Center);
-        let content_area = block.inner(score_area);
+        let [score_area, level_area, placed_pieces_area] = Layout::vertical([
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+        ])
+        .areas(right);
 
         frame.render_widget(game_area, left);
-        frame.render_widget(block, score_area);
-        frame.render_widget(Paragraph::new(score_text).centered(), content_area);
+        for (area, title, value) in [
+            (score_area, "Score", state.score.to_string()),
+            (level_area, "Level", state.level.to_string()),
+            (
+                placed_pieces_area,
+                "Pieces / Levelup",
+                format!("{} / {}", state.placed_pieces, state.levelup_pieces),
+            ),
+        ] {
+            let block = Block::bordered()
+                .title(title)
+                .title_alignment(HorizontalAlignment::Center);
+            let content_area = block.inner(area);
+
+            frame.render_widget(block, area);
+            frame.render_widget(Paragraph::new(value).centered(), content_area);
+        }
     }
 
     pub fn update(&mut self, state: &mut State) {
-        self.check_collision(state);
+        let collided = self.check_collision(state);
+        if collided && state.game_ended {
+            return;
+        }
         self.update_gravity(state);
     }
 
@@ -105,15 +121,6 @@ impl GameScreen {
             }
             _ => {}
         }
-    }
-
-    fn has_lost(&self, state: &State) -> bool {
-        for x in 0..BOARD_WIDTH {
-            if state.tiles[x][BOARD_HEIGHT - 1] != Color::Reset {
-                return true;
-            }
-        }
-        return false;
     }
 
     fn move_if_valid(&self, state: &mut State, x: i8, y: i8) {

@@ -14,6 +14,7 @@ use crate::piece::{self, Piece};
 pub const SOLID_STR: &str = "█";
 pub const LIGHT_STR: &str = "░";
 pub const BLANK_STR: &str = " ";
+pub const PIECES_PER_LEVEL: i32 = 16;
 pub const BOARD_WIDTH: usize = 10;
 pub const BOARD_HEIGHT: usize = 20;
 pub const SCALE_X: usize = 4;
@@ -25,6 +26,14 @@ pub struct State {
     pub score: u32,
     pub tiles: [[Color; BOARD_HEIGHT]; BOARD_WIDTH],
     pub piece_queue_ind: usize,
+    pub game_ended: bool,
+    pub placed_pieces: i32,
+
+    #[derivative(Default(value = "1"))]
+    pub level: i32,
+
+    #[derivative(Default(value = "PIECES_PER_LEVEL"))]
+    pub levelup_pieces: i32,
 
     #[derivative(Default(value = "State::create_pieces()"))]
     pub piece_queue: Vec<Piece>,
@@ -49,6 +58,18 @@ impl State {
             self.piece_queue_ind = 0;
             self.piece_queue.shuffle(&mut rand::rng());
         }
+
+        self.placed_pieces += 1;
+        if self.placed_pieces > self.levelup_pieces {
+            self.level += 1;
+            self.levelup_pieces = self.next_levelup_count();
+            self.gravity_dur =
+                Duration::from_millis((750.0 * (self.level as f64).powf(-0.68144)) as u64);
+        }
+    }
+
+    fn next_levelup_count(&self) -> i32 {
+        ((PIECES_PER_LEVEL as f32) * (self.level as f32).powf(1.25)) as i32
     }
 
     pub fn piece(&mut self) -> &mut Piece {
@@ -110,6 +131,13 @@ impl State {
     }
 
     pub fn check_rows(&mut self) {
+        self.eliminate_full_rows();
+        if (0..BOARD_WIDTH).any(|x| self.tiles[x][BOARD_HEIGHT - 1] != Color::Reset) {
+            self.game_ended = true;
+        }
+    }
+
+    pub fn eliminate_full_rows(&mut self) {
         let mut y = 0;
         let mut row_bonus = 10;
         while y < BOARD_HEIGHT {
