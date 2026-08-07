@@ -1,0 +1,108 @@
+name: Build and draft release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os_name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            os_name: linux
+            extension: ""
+          - os: macos-latest
+            os_name: macos
+            extension: ""
+          - os: windows-latest
+            os_name: windows
+            extension: .exe
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Read Cargo package metadata
+        id: package
+        shell: bash
+        run: |
+          metadata="$(cargo metadata --no-deps --format-version 1)"
+          root_id="$(jq -r '.resolve.root' <<< "$metadata")"
+          echo "name=$(jq -r --arg id "$root_id" '.packages[] | select(.id == $id) | .name' <<< "$metadata")" >> "$GITHUB_OUTPUT"
+          echo "version=$(jq -r --arg id "$root_id" '.packages[] | select(.id == $id) | .version' <<< "$metadata")" >> "$GITHUB_OUTPUT"
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Stage binary
+        id: binary
+        shell: bash
+        env:
+          PACKAGE_NAME: ${{ steps.package.outputs.name }}
+          OS_NAME: ${{ matrix.os_name }}
+          EXTENSION: ${{ matrix.extension }}
+        run: |
+          asset_name="${PACKAGE_NAME}-${OS_NAME}-${RUNNER_ARCH}${EXTENSION}"
+          mkdir -p dist
+          cp "target/release/${PACKAGE_NAME}${EXTENSION}" "dist/${asset_name}"
+          echo "asset_name=${asset_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.binary.outputs.asset_name }}
+          path: dist/${{ steps.binary.outputs.asset_name }}
+          if-no-files-found: error
+
+  release:
+    name: Create draft release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Read Cargo package metadata
+        id: package
+        shell: bash
+        run: |
+          metadata="$(cargo metadata --no-deps --format-version 1)"
+          root_id="$(jq -r '.resolve.root' <<< "$metadata")"
+          name="$(jq -r --arg id "$root_id" '.packages[] | select(.id == $id) | .name' <<< "$metadata")"
+          version="$(jq -r --arg id "$root_id" '.packages[] | select(.id == $id) | .version // "0.1.0"' <<< "$metadata")"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create or update draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_NAME: ${{ steps.package.outputs.name }}
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          tag="v${PACKAGE_VERSION:-0.1.0}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --draft --title "$PACKAGE_NAME $tag"
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* \
+              --draft \
+              --generate-notes \
+              --target "$GITHUB_SHA" \
+              --title "$PACKAGE_NAME $tag"
+          fi
