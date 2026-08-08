@@ -1,15 +1,15 @@
 # Cursed Tetris
 
-A terminal tetris game made using Ratatui and Crossterm in Rust.
+A terminal tetris game made using Ratatui and Crossterm in Rust, with some powerups for extra variety.
 
-Mostly just an experience for me to learn Rust.
-
-<img src="title.png" width="49%" />
-<img src="gameplay.png" width="49%" />
-
-## Download instructions
+The implementation is pretty barebones, and mostly just an experience for me to learn Rust.
 
 **Note: Maximize your terminal when running the program!**
+
+| ![Title Screen](title.png) | ![Gameplay](gameplay.png) |
+|---|---|
+
+## Download instructions
 
 **Linux/MacOS**
 
