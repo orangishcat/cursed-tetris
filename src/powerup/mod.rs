@@ -29,7 +29,7 @@ pub struct PowerUp {
     pub y: i8,
 
     #[derivative(Default(value = "3"))]
-    count: u8,
+    pub count: u8,
 }
 
 impl PowerUp {
@@ -50,10 +50,6 @@ impl PowerUp {
 
     pub fn is_active(&self) -> bool {
         !self.is_type_equal(&None)
-    }
-
-    pub fn count(&self) -> u8 {
-        self.count
     }
 
     pub fn nudge(&mut self, x: i8, y: i8) {

@@ -1,8 +1,8 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use rand::RngExt;
+use rand::seq::SliceRandom;
 use ratatui::{
     Frame,
-    layout::{Constraint, Flex, Layout},
+    layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, BorderType, Paragraph},
@@ -15,7 +15,7 @@ use crate::{
         AppScreen::{self, Game, Quit},
         game_screen::GameScreen,
     },
-    state::State,
+    state::{SCALE_X, SCALE_Y, State},
 };
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -37,29 +37,37 @@ impl MenuChoice {
 pub struct TitleScreen {
     selected: MenuChoice,
     activated: Option<MenuChoice>,
-    piece_widget: Paragraph<'static>,
+    piece_widgets: Vec<Paragraph<'static>>,
 }
 
 impl Default for TitleScreen {
     fn default() -> Self {
+        let mut piece_widgets = (0..PIECE_LAYOUTS.len())
+            .map(|id| Piece::from_id(id).as_widget())
+            .collect::<Vec<Paragraph<'static>>>();
+        piece_widgets.shuffle(&mut rand::rng());
+        piece_widgets.truncate(3);
+
         Self {
             selected: MenuChoice::default(),
             activated: None,
-            piece_widget: Piece::from_id(rand::rng().random_range(0..PIECE_LAYOUTS.len()))
-                .as_widget(),
+            piece_widgets,
         }
     }
 }
 
 impl TitleScreen {
     pub fn draw(&self, _state: &mut State, frame: &mut Frame) {
-        let [content] = Layout::vertical([Constraint::Length(13)])
+        let [content] = Layout::vertical([Constraint::Length(16 + 3 * SCALE_Y as u16)])
             .flex(Flex::Center)
             .areas(frame.area());
-        let [title_area, body_area] =
-            Layout::vertical([Constraint::Length(5), Constraint::Length(7)])
-                .spacing(1)
-                .areas(content);
+        let [title_area, piece_area, body_area] = Layout::vertical([
+            Constraint::Length(5),
+            Constraint::Length(3 * SCALE_Y as u16),
+            Constraint::Length(7),
+        ])
+        .spacing(1)
+        .areas(content);
 
         let title = BigText::builder()
             .pixel_size(PixelSize::Quadrant)
@@ -73,11 +81,11 @@ impl TitleScreen {
             .build();
         frame.render_widget(title, title_area);
 
-        let [body] = Layout::horizontal([Constraint::Length(44)])
+        let [body] = Layout::horizontal([Constraint::Length(50)])
             .flex(Flex::Center)
             .areas(body_area);
-        let [menu_area, piece_area] =
-            Layout::horizontal([Constraint::Length(20), Constraint::Length(20)])
+        let [menu_area, controls] =
+            Layout::horizontal([Constraint::Length(20), Constraint::Length(30)])
                 .spacing(4)
                 .areas(body);
 
@@ -110,10 +118,30 @@ impl TitleScreen {
             );
         }
 
-        let [piece_area] = Layout::vertical([Constraint::Length(4)])
-            .flex(Flex::Center)
-            .areas(piece_area);
-        frame.render_widget(&self.piece_widget, piece_area);
+        let horiz_piece_areas: [Rect; 3] = Layout::horizontal(
+            [Constraint::Length(4 * SCALE_X as u16)].repeat(self.piece_widgets.len()),
+        )
+        .flex(Flex::Center)
+        .areas(piece_area);
+        for (i, widget) in (&self.piece_widgets).iter().enumerate() {
+            frame.render_widget(widget, horiz_piece_areas[i]);
+        }
+
+        let controls_block = Block::bordered()
+            .title("Controls")
+            .title_alignment(HorizontalAlignment::Center);
+        let lines = [
+            "A / ←: Move left",
+            "D / →: Move right",
+            "W / ↑: Rotate",
+            "S / ↓: Move down",
+            "Space: Snap downwards",
+            "1: Use powerup",
+        ]
+        .map(|s| Line::from(vec![Span::from(s)]));
+        let controls_para = Paragraph::new(lines.to_vec()).centered();
+        frame.render_widget(controls_para, controls_block.inner(controls));
+        frame.render_widget(controls_block, controls);
     }
 
     pub fn handle_keypress(&mut self, _state: &mut State, key: &KeyEvent) {

@@ -107,7 +107,7 @@ impl GameScreen {
             Span::from(" 💣"),
             Span::styled("×", Style::default().fg(Color::DarkGray)),
             Span::styled(
-                state.powerup.count().to_string(),
+                state.powerup.count.to_string(),
                 Style::default().fg(Color::Yellow),
             ),
         ])])

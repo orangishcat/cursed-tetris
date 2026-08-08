@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{os::linux::raw::stat, time::Duration};
 
 use derivative::Derivative;
 use rand::seq::SliceRandom;
@@ -72,6 +72,10 @@ impl State {
             self.levelup_pieces = self.next_levelup_count();
             self.gravity_dur =  // custom exponenetial curve for gravity ms
                 Duration::from_millis((750.0 * (self.level as f64).powf(-0.68144)) as u64);
+
+            if self.level % 3 == 0 {
+                self.powerup.count += 1;
+            }
         }
     }
 
@@ -96,15 +100,19 @@ impl State {
                         !self.powerup.is_active() && self.piece().is_tile_active(x as i8, y as i8);
                     let col = if powerup {
                         Color::White
-                    } else if !active_piece {
-                        self.tiles[x][y]
-                    } else {
+                    } else if active_piece {
                         self.piece().color()
+                    } else {
+                        self.tiles[x][y]
                     };
 
                     Span::styled(
                         if powerup {
-                            String::from(self.powerup.get_icon())
+                            format!(
+                                "{}{}",
+                                self.powerup.get_icon(),
+                                BLANK_STR.repeat(SCALE_X - 3)
+                            )
                         } else if active_piece {
                             LIGHT_STR.repeat(SCALE_X)
                         } else if col != Color::Reset {
@@ -118,7 +126,11 @@ impl State {
                 .collect();
             let line = Line::from(spans);
             for _ in 1..SCALE_Y {
-                lines.push(line.clone());
+                let mut clone = line.clone();
+                if self.powerup.is_active() && self.powerup.y as usize == y {
+                    clone.spans[self.powerup.x as usize] = Span::from(BLANK_STR.repeat(SCALE_X))
+                }
+                lines.push(clone);
             }
             lines.push(line);
         }
