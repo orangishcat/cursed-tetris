@@ -85,6 +85,9 @@ impl Piece {
         }
         self.layout = self.layout.map(|[x, y]| [-y, x]);
     }
+    pub fn reset(&mut self) {
+        *self = Piece::from_id(self.id);
+    }
     pub fn is_tile_active(&self, x: i8, y: i8) -> bool {
         if x.abs_diff(self.x()) > 2 || y.abs_diff(self.y()) > 2 {
             return false;

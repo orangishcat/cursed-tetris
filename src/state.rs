@@ -53,7 +53,8 @@ impl State {
     }
 
     pub fn next_piece(&mut self) {
-        self.piece().pos = [BOARD_WIDTH as i8 / 2, BOARD_HEIGHT as i8];
+        self.piece().reset();
+
         self.piece_queue_ind += 1;
         if self.piece_queue_ind >= piece::QUEUE_SIZE - NEXT_LOOKUP {
             self.piece_queue_ind = 0;
@@ -65,7 +66,7 @@ impl State {
         if self.placed_pieces > self.levelup_pieces {
             self.level += 1;
             self.levelup_pieces = self.next_levelup_count();
-            self.gravity_dur =
+            self.gravity_dur =  // custom exponenetial curve for gravity ms
                 Duration::from_millis((750.0 * (self.level as f64).powf(-0.68144)) as u64);
         }
     }
