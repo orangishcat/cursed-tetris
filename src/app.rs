@@ -8,7 +8,7 @@ use ratatui::DefaultTerminal;
 
 use crate::{screen::AppScreen, state::State};
 
-const FRAME_TIME: Duration = Duration::from_nanos(1_000_000_000 / 30);
+const FRAME_TIME: Duration = Duration::from_nanos(1_000_000_000 / 24);
 
 #[derive(Default)]
 pub struct App {

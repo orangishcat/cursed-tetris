@@ -12,6 +12,7 @@ use ratatui::{
 use tui_big_text::{BigText, PixelSize};
 
 use crate::{
+    piece::HasTile,
     powerup::{BombPowerup, PowerUp, PowerUpType},
     screen::{
         AppScreen::{self, Lose},
@@ -185,7 +186,7 @@ impl GameScreen {
 
             let x = state.powerup.x as usize;
             let y = state.powerup.y as usize - 1;
-            return x >= BOARD_WIDTH || y >= BOARD_HEIGHT || state.tiles[x][y] != Color::Reset;
+            return x >= BOARD_WIDTH || y >= BOARD_HEIGHT || state.tiles[x][y].has_tile();
         }
         let p = state.piece();
         for [abs_x, abs_y] in p.abs_pos() {
@@ -195,7 +196,7 @@ impl GameScreen {
             if abs_x < 0 || abs_x >= state::BOARD_WIDTH as i8 {
                 continue;
             }
-            if abs_y <= 0 || state.tiles[abs_x as usize][abs_y as usize - 1] != Color::Reset {
+            if abs_y <= 0 || state.tiles[abs_x as usize][abs_y as usize - 1].has_tile() {
                 return true;
             }
         }
@@ -211,6 +212,13 @@ impl GameScreen {
             state.powerup.nudge(0, -1);
         } else {
             state.piece().nudge(0, -1);
+        }
+
+        if !state.reset_queue.is_empty() {
+            for pos in &state.reset_queue {
+                state.tiles[pos[0]][pos[1]] = Color::Reset;
+            }
+            state.reset_queue.clear();
         }
         self.last_gravity_update = Instant::now();
     }
@@ -276,7 +284,7 @@ impl GameScreen {
 
             let x = state.powerup.x as usize;
             let y = state.powerup.y as usize;
-            return x < BOARD_WIDTH && y < BOARD_HEIGHT && state.tiles[x][y] == Color::Reset;
+            return x < BOARD_WIDTH && y < BOARD_HEIGHT && !state.tiles[x][y].has_tile();
         }
         for [abs_x, abs_y] in state.piece().abs_pos() {
             let x_size = abs_x as usize;
@@ -287,7 +295,7 @@ impl GameScreen {
             if abs_x < 0
                 || abs_y < 0
                 || x_size >= BOARD_WIDTH
-                || state.tiles[x_size][y_size] != Color::Reset
+                || state.tiles[x_size][y_size].has_tile()
             {
                 return false;
             }

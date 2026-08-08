@@ -1,16 +1,19 @@
-use std::{os::linux::raw::stat, time::Duration};
+use std::time::Duration;
 
 use derivative::Derivative;
 use rand::seq::SliceRandom;
 use ratatui::{
     layout::HorizontalAlignment,
-    style::{Color, Style},
+    style::{
+        Color::{self},
+        Style,
+    },
     text::{Line, Span},
     widgets::{Block, BorderType, Paragraph},
 };
 
 use crate::{
-    piece::{self, Piece},
+    piece::{self, HasTile, Piece},
     powerup::PowerUp,
 };
 
@@ -29,6 +32,7 @@ pub const NEXT_LOOKUP: usize = 3;
 pub struct State {
     pub score: u32,
     pub tiles: [[Color; BOARD_HEIGHT]; BOARD_WIDTH],
+    pub reset_queue: Vec<[usize; 2]>,
     pub piece_queue_ind: usize,
     pub game_ended: bool,
     pub placed_pieces: i32,
@@ -160,7 +164,7 @@ impl State {
 
     pub fn check_rows(&mut self) {
         self.eliminate_full_rows();
-        if (0..BOARD_WIDTH).any(|x| self.tiles[x][BOARD_HEIGHT - 1] != Color::Reset) {
+        if (0..BOARD_WIDTH).any(|x| self.tiles[x][BOARD_HEIGHT - 1].has_tile()) {
             self.game_ended = true;
         }
     }
@@ -168,7 +172,7 @@ impl State {
     pub fn eliminate_full_rows(&mut self) {
         let mut y = 0;
         while y < BOARD_HEIGHT {
-            let full_row = (0..BOARD_WIDTH).all(|x| self.tiles[x][y] != Color::Reset);
+            let full_row = (0..BOARD_WIDTH).all(|x| self.tiles[x][y].has_tile());
             if !full_row {
                 y += 1;
                 continue;

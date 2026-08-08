@@ -150,3 +150,12 @@ impl Piece {
         Paragraph::new(lines)
     }
 }
+
+pub trait HasTile {
+    fn has_tile(&self) -> bool;
+}
+impl HasTile for Color {
+    fn has_tile(&self) -> bool {
+        *self != Color::Reset && *self != Color::DarkGray
+    }
+}
