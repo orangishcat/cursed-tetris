@@ -19,12 +19,15 @@ jobs:
           - os: ubuntu-latest
             os_name: linux
             extension: ""
+            archive_extension: .tar.gz
           - os: macos-latest
             os_name: macos
             extension: ""
+            archive_extension: .tar.gz
           - os: windows-latest
             os_name: windows
             extension: .exe
+            archive_extension: .zip
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -54,10 +57,19 @@ jobs:
           PACKAGE_NAME: ${{ steps.package.outputs.name }}
           OS_NAME: ${{ matrix.os_name }}
           EXTENSION: ${{ matrix.extension }}
+          ARCHIVE_EXTENSION: ${{ matrix.archive_extension }}
         run: |
-          asset_name="${PACKAGE_NAME}-${OS_NAME}-${RUNNER_ARCH}${EXTENSION}"
-          mkdir -p dist
-          cp "target/release/${PACKAGE_NAME}${EXTENSION}" "dist/${asset_name}"
+          asset_name="${PACKAGE_NAME}-${OS_NAME}-${RUNNER_ARCH}${ARCHIVE_EXTENSION}"
+          mkdir -p dist staging
+          cp "target/release/${PACKAGE_NAME}${EXTENSION}" "staging/${PACKAGE_NAME}${EXTENSION}"
+
+          if [[ "$OS_NAME" == "windows" ]]; then
+            (cd staging && 7z a "../dist/${asset_name}" "${PACKAGE_NAME}${EXTENSION}")
+          else
+            chmod +x "staging/${PACKAGE_NAME}"
+            tar -C staging -czf "dist/${asset_name}" "${PACKAGE_NAME}"
+          fi
+
           echo "asset_name=${asset_name}" >> "$GITHUB_OUTPUT"
 
       - name: Upload build artifact
