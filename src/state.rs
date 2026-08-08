@@ -9,7 +9,10 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph},
 };
 
-use crate::piece::{self, Piece};
+use crate::{
+    piece::{self, Piece},
+    powerup::PowerUp,
+};
 
 pub const SOLID_STR: &str = "█";
 pub const LIGHT_STR: &str = "░";
@@ -29,6 +32,7 @@ pub struct State {
     pub piece_queue_ind: usize,
     pub game_ended: bool,
     pub placed_pieces: i32,
+    pub powerup: PowerUp,
 
     #[derivative(Default(value = "1"))]
     pub level: i32,
@@ -85,15 +89,23 @@ impl State {
         for y in (0..BOARD_HEIGHT).rev() {
             let spans: Vec<Span<'static>> = (0..BOARD_WIDTH)
                 .map(|x| {
-                    let active = self.piece().is_tile_active(x as i8, y as i8);
-                    let col = if !active {
+                    let powerup = self.powerup.is_active()
+                        && x == self.powerup.x as usize
+                        && y == self.powerup.y as usize;
+                    let active_piece =
+                        !self.powerup.is_active() && self.piece().is_tile_active(x as i8, y as i8);
+                    let col = if powerup {
+                        Color::White
+                    } else if !active_piece {
                         self.tiles[x][y]
                     } else {
                         self.piece().color()
                     };
 
                     Span::styled(
-                        if active {
+                        if powerup {
+                            String::from(self.powerup.get_icon())
+                        } else if active_piece {
                             LIGHT_STR.repeat(SCALE_X)
                         } else if col != Color::Reset {
                             SOLID_STR.repeat(SCALE_X)
@@ -143,7 +155,6 @@ impl State {
 
     pub fn eliminate_full_rows(&mut self) {
         let mut y = 0;
-        let mut row_bonus = 10;
         while y < BOARD_HEIGHT {
             let full_row = (0..BOARD_WIDTH).all(|x| self.tiles[x][y] != Color::Reset);
             if !full_row {
@@ -155,9 +166,8 @@ impl State {
                 column.copy_within(y + 1..BOARD_HEIGHT, y);
                 column[BOARD_HEIGHT - 1] = Color::Reset;
             }
-            self.score += row_bonus;
-            row_bonus += 10;
-            // y needs rechecking, don't increment
+            self.score += BOARD_WIDTH as u32;
+            break;
         }
     }
 }

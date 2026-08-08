@@ -1,5 +1,6 @@
 mod app;
 mod piece;
+mod powerup;
 mod screen;
 mod state;
 use std::io;

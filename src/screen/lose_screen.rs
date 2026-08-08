@@ -65,7 +65,7 @@ impl LoseScreen {
         let game_over = BigText::builder()
             .pixel_size(PixelSize::Quadrant)
             .centered()
-            .style(Style::default().add_modifier(Modifier::BOLD))
+            .style(Style::default().add_modifier(Modifier::BOLD).light_red())
             .lines(vec![Line::from("Game Over!")])
             .build();
         frame.render_widget(game_over, banner_area);

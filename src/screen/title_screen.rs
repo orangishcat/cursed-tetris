@@ -4,7 +4,7 @@ use ratatui::{
     Frame,
     layout::{Constraint, Flex, Layout},
     style::{Color, Modifier, Style},
-    text::Line,
+    text::{Line, Span},
     widgets::{Block, BorderType, Paragraph},
 };
 use tui_big_text::{BigText, PixelSize};
@@ -65,7 +65,11 @@ impl TitleScreen {
             .pixel_size(PixelSize::Quadrant)
             .centered()
             .style(Style::default().add_modifier(Modifier::BOLD))
-            .lines(vec![Line::from("Cursed Tetris")])
+            .lines(vec![Line::from(vec![
+                Span::styled("Cursed", Style::default().fg(Color::LightRed)),
+                Span::raw(" "),
+                Span::styled("Tetris", Style::default().fg(Color::Yellow)),
+            ])])
             .build();
         frame.render_widget(title, title_area);
 
