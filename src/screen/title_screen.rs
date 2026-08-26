@@ -123,7 +123,7 @@ impl TitleScreen {
         )
         .flex(Flex::Center)
         .areas(piece_area);
-        for (i, widget) in (&self.piece_widgets).iter().enumerate() {
+        for (i, widget) in self.piece_widgets.iter().enumerate() {
             frame.render_widget(widget, horiz_piece_areas[i]);
         }
 

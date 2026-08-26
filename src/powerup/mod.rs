@@ -1,3 +1,7 @@
+use std::cmp::max;
+
+use crate::powerup::PowerUpType::Paintball;
+pub use crate::powerup::paintball::PaintballPowerup;
 use crate::state::BOARD_HEIGHT;
 use crate::state::BOARD_WIDTH;
 use derivative::Derivative;
@@ -7,15 +11,17 @@ use crate::{
     state::State,
 };
 
-mod bomb_powerup;
+mod bomb;
+mod paintball;
 
-pub use bomb_powerup::BombPowerup;
+pub use bomb::BombPowerup;
 
 #[derive(Default)]
 pub enum PowerUpType {
     #[default]
     None,
     Bomb(BombPowerup),
+    Paintball(PaintballPowerup),
 }
 
 #[derive(Derivative)]
@@ -28,16 +34,18 @@ pub struct PowerUp {
     #[derivative(Default(value = "BOARD_HEIGHT as i8 - 1"))]
     pub y: i8,
 
-    #[derivative(Default(value = "3"))]
+    #[derivative(Default(value = "5"))]
     pub count: u8,
 }
 
 impl PowerUp {
     pub fn on_collide(state: &mut State) {
-        let (x, y) = (state.powerup.x, state.powerup.y);
+        // tiles collide when they touch another tile, powerups collide with their center inside of a tile
+        let (x, y) = (state.powerup.x, max(0, state.powerup.y - 1));
         let powerup_type = std::mem::take(&mut state.powerup.p_type);
         match powerup_type {
             Bomb(bomb) => bomb.on_collide(x, y, state),
+            Paintball(paintball) => paintball.on_collide(x, y, state),
             _ => {}
         }
         state.powerup.reset();
@@ -45,7 +53,7 @@ impl PowerUp {
     }
 
     pub fn is_type_equal(&self, p_type: &PowerUpType) -> bool {
-        std::mem::discriminant(&self.p_type) == std::mem::discriminant(&p_type)
+        std::mem::discriminant(&self.p_type) == std::mem::discriminant(p_type)
     }
 
     pub fn is_active(&self) -> bool {
@@ -58,10 +66,11 @@ impl PowerUp {
     }
 
     pub fn toggle_type(&mut self, p_type: PowerUpType) {
-        if self.count <= 0 || self.is_active() {
-            return;
-        }
-        self.p_type = p_type;
+        self.p_type = if self.count <= 0 || self.is_active() {
+            None
+        } else {
+            p_type
+        };
     }
 
     pub fn reset(&mut self) {
@@ -74,6 +83,6 @@ impl PowerUp {
         if self.is_type_equal(&Bomb(BombPowerup::default())) {
             return "💣 ";
         }
-        " "
+        "🎨 "
     }
 }

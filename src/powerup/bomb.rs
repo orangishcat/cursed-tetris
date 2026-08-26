@@ -5,7 +5,7 @@ use crate::{
     state::{BOARD_HEIGHT, BOARD_WIDTH, State},
 };
 
-const BOMB_RADIUS: usize = 3;
+const BOMB_RADIUS: usize = 2;
 
 #[derive(Default)]
 pub struct BombPowerup {}

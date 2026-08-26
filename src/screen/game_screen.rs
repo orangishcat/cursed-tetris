@@ -13,7 +13,7 @@ use tui_big_text::{BigText, PixelSize};
 
 use crate::{
     piece::HasTile,
-    powerup::{BombPowerup, PowerUp, PowerUpType},
+    powerup::{BombPowerup, PaintballPowerup, PowerUp, PowerUpType},
     screen::{
         AppScreen::{self, Lose},
         lose_screen::LoseScreen,
@@ -103,15 +103,22 @@ impl GameScreen {
             .title("Powerup")
             .title_alignment(HorizontalAlignment::Center);
         let powerup_content = powerup_block.inner(powerup_area);
-        let powerup_display = Paragraph::new(vec![Line::from(vec![
-            Span::styled("[1]", Style::default().fg(Color::Gray)),
-            Span::from(" 💣"),
-            Span::styled("×", Style::default().fg(Color::DarkGray)),
-            Span::styled(
-                state.powerup.count.to_string(),
+        let powerup_display = Paragraph::new(vec![
+            Line::from(vec![
+                Span::styled("[1]", Style::default().fg(Color::Gray)),
+                Span::from(" 💣"),
+                Span::styled("×", Style::default().fg(Color::DarkGray)),
+            ]),
+            Line::from(vec![
+                Span::styled("[2]", Style::default().fg(Color::Gray)),
+                Span::from(" 🎨"),
+                Span::styled("×", Style::default().fg(Color::DarkGray)),
+            ]),
+            Line::from(vec![Span::styled(
+                format!("{} left", state.powerup.count),
                 Style::default().fg(Color::Yellow),
-            ),
-        ])])
+            )]),
+        ])
         .centered();
         frame.render_widget(powerup_block, powerup_area);
         frame.render_widget(powerup_display, powerup_content);
@@ -175,7 +182,7 @@ impl GameScreen {
                 state.next_piece();
             }
         }
-        return collided;
+        collided
     }
 
     fn has_collided(&mut self, state: &mut State) -> bool {
@@ -190,7 +197,7 @@ impl GameScreen {
         }
         let p = state.piece();
         for [abs_x, abs_y] in p.abs_pos() {
-            if abs_y - 1 >= state::BOARD_HEIGHT as i8 {
+            if abs_y > state::BOARD_HEIGHT as i8 {
                 continue;
             }
             if abs_x < 0 || abs_x >= state::BOARD_WIDTH as i8 {
@@ -200,7 +207,7 @@ impl GameScreen {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn update_gravity(&mut self, state: &mut State) {
@@ -238,6 +245,11 @@ impl GameScreen {
             KeyCode::Char('1') => state
                 .powerup
                 .toggle_type(PowerUpType::Bomb(BombPowerup::default())),
+            KeyCode::Char('2') => {
+                state
+                    .powerup
+                    .toggle_type(PowerUpType::Paintball(PaintballPowerup::default()));
+            }
             KeyCode::Char(' ') => {
                 let mut attempts = 0;
                 while !self.check_collision(state)
@@ -300,6 +312,6 @@ impl GameScreen {
                 return false;
             }
         }
-        return true;
+        true
     }
 }

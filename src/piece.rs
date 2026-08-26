@@ -47,7 +47,7 @@ pub struct Piece {
 impl Piece {
     pub fn from_id(id: usize) -> Self {
         Self {
-            id: id,
+            id,
             layout: PIECE_LAYOUTS[id],
             pos: [
                 (state::BOARD_WIDTH as i8) / 2,
@@ -56,13 +56,13 @@ impl Piece {
         }
     }
     pub fn x(&self) -> i8 {
-        return self.pos[0];
+        self.pos[0]
     }
     pub fn y(&self) -> i8 {
-        return self.pos[1];
+        self.pos[1]
     }
     pub fn color(&self) -> Color {
-        return PIECE_COLOR[self.id];
+        PIECE_COLOR[self.id]
     }
     pub fn abs_pos(&self) -> [[i8; 2]; 4] {
         self.layout.map(|[x, y]| [x + self.x(), y + self.y()])
@@ -97,7 +97,7 @@ impl Piece {
                 return true;
             }
         }
-        return false;
+        false
     }
     pub fn as_widget(&self) -> Paragraph<'static> {
         let min_x = self
