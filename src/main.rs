@@ -3,6 +3,7 @@ mod piece;
 mod powerup;
 mod screen;
 mod state;
+mod task;
 use std::io;
 
 fn main() -> io::Result<()> {

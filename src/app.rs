@@ -6,9 +6,9 @@ use std::{
 
 use ratatui::DefaultTerminal;
 
-use crate::{screen::AppScreen, state::State};
+use crate::{screen::AppScreen, state::State, task::update_tasks};
 
-const FRAME_TIME: Duration = Duration::from_nanos(1_000_000_000 / 24);
+pub const FRAME_TIME: Duration = Duration::from_nanos(1_000_000_000 / 24);
 
 #[derive(Default)]
 pub struct App {
@@ -21,6 +21,7 @@ impl App {
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         while !self.should_quit {
             let frame_start = Instant::now();
+            update_tasks(&mut self.state);
             terminal.draw(|frame| self.screen.draw(&mut self.state, frame))?;
 
             let timeout = FRAME_TIME.saturating_sub(frame_start.elapsed());

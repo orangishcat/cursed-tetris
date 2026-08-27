@@ -1,4 +1,7 @@
-use std::time::Instant;
+use std::{
+    os::macos::raw::stat,
+    time::{Duration, Instant},
+};
 
 use crossterm::event::{KeyCode, KeyEvent};
 use derivative::Derivative;
@@ -19,16 +22,16 @@ use crate::{
         lose_screen::LoseScreen,
     },
     state::{self, BOARD_HEIGHT, BOARD_WIDTH, NEXT_LOOKUP, SCALE_Y, State},
+    task::add_task,
 };
 
-#[derive(Derivative)]
-#[derivative(Default)]
-pub struct GameScreen {
-    #[derivative(Default(value = "Instant::now()"))]
-    pub last_gravity_update: Instant,
-}
+#[derive(Default)]
+pub struct GameScreen {}
 
 impl GameScreen {
+    pub fn init(&mut self, state: &mut State) {
+        Self::add_gravity_task(state);
+    }
     pub fn draw(&self, state: &mut State, frame: &mut Frame) {
         let [row] = Layout::vertical([Constraint::Length(
             (state::BOARD_HEIGHT * state::SCALE_Y + 2) as u16,
@@ -80,10 +83,11 @@ impl GameScreen {
             .build();
         frame.render_widget(right_vertical_title, right_text_area);
 
-        let [score_area, level_area, powerup_area] = Layout::vertical([
+        let [score_area, level_area, powerup_area, _] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(3),
-            Constraint::Length(16),
+            Constraint::Length(5),
+            Constraint::Length(12),
         ])
         .flex(Flex::Center)
         .areas(left);
@@ -167,7 +171,6 @@ impl GameScreen {
         if collided && state.game_ended {
             return Some(Lose(LoseScreen::default()));
         }
-        self.update_gravity(state);
         None
     }
 
@@ -210,24 +213,20 @@ impl GameScreen {
         false
     }
 
-    fn update_gravity(&mut self, state: &mut State) {
-        if self.last_gravity_update.elapsed() < state.gravity_dur {
-            return;
-        }
+    fn add_gravity_task(state: &mut State) {
+        add_task(
+            state.gravity_dur,
+            |state| {
+                if state.powerup.is_active() {
+                    state.powerup.nudge(0, -1);
+                } else {
+                    state.piece().nudge(0, -1);
+                }
 
-        if state.powerup.is_active() {
-            state.powerup.nudge(0, -1);
-        } else {
-            state.piece().nudge(0, -1);
-        }
-
-        if !state.reset_queue.is_empty() {
-            for pos in &state.reset_queue {
-                state.tiles[pos[0]][pos[1]] = Color::Reset;
-            }
-            state.reset_queue.clear();
-        }
-        self.last_gravity_update = Instant::now();
+                Self::add_gravity_task(state);
+            },
+            state,
+        );
     }
 
     pub fn handle_keypress(&mut self, state: &mut State, key: &KeyEvent) {

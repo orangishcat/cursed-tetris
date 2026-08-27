@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{cmp::Reverse, collections::BinaryHeap, time::Duration};
 
 use derivative::Derivative;
 use rand::seq::SliceRandom;
@@ -15,6 +15,7 @@ use ratatui::{
 use crate::{
     piece::{self, HasTile, Piece},
     powerup::PowerUp,
+    task::Task,
 };
 
 pub const SOLID_STR: &str = "█";
@@ -32,11 +33,12 @@ pub const NEXT_LOOKUP: usize = 3;
 pub struct State {
     pub score: u32,
     pub tiles: [[Color; BOARD_HEIGHT]; BOARD_WIDTH],
-    pub reset_queue: Vec<[usize; 2]>,
     pub piece_queue_ind: usize,
     pub game_ended: bool,
     pub placed_pieces: i32,
     pub powerup: PowerUp,
+
+    pub task_queue: BinaryHeap<Reverse<Task>>,
 
     #[derivative(Default(value = "1"))]
     pub level: i32,
