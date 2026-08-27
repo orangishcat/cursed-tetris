@@ -1,7 +1,9 @@
 use std::cmp::max;
 
 use crate::powerup::PowerUpType::Paintball;
+use crate::powerup::PowerUpType::Roller;
 pub use crate::powerup::paintball::PaintballPowerup;
+pub use crate::powerup::roller::RollerPowerup;
 use crate::state::BOARD_HEIGHT;
 use crate::state::BOARD_WIDTH;
 use derivative::Derivative;
@@ -13,6 +15,7 @@ use crate::{
 
 mod bomb;
 mod paintball;
+mod roller;
 
 pub use bomb::BombPowerup;
 
@@ -22,6 +25,18 @@ pub enum PowerUpType {
     None,
     Bomb(BombPowerup),
     Paintball(PaintballPowerup),
+    Roller(RollerPowerup),
+}
+
+impl PowerUpType {
+    pub fn get_icon(&self) -> &str {
+        match self {
+            PowerUpType::Bomb(_) => "💣 ",
+            PowerUpType::Paintball(_) => "🎨 ",
+            PowerUpType::Roller(_) => "🖌️ ",
+            _ => " ",
+        }
+    }
 }
 
 #[derive(Derivative)]
@@ -46,18 +61,18 @@ impl PowerUp {
         match powerup_type {
             Bomb(bomb) => bomb.on_collide(x, y, state),
             Paintball(paintball) => paintball.on_collide(x, y, state),
+            Roller(roller) => roller.on_collide(x, y, state),
             _ => {}
         }
         state.powerup.reset();
         state.powerup.count -= 1;
     }
 
-    pub fn is_type_equal(&self, p_type: &PowerUpType) -> bool {
-        std::mem::discriminant(&self.p_type) == std::mem::discriminant(p_type)
-    }
-
     pub fn is_active(&self) -> bool {
-        !self.is_type_equal(&None)
+        match self.p_type {
+            None => false,
+            _ => true,
+        }
     }
 
     pub fn nudge(&mut self, x: i8, y: i8) {
@@ -77,12 +92,5 @@ impl PowerUp {
         self.x = BOARD_WIDTH as i8 / 2;
         self.y = BOARD_HEIGHT as i8 - 1;
         self.p_type = None;
-    }
-
-    pub fn get_icon(&self) -> &str {
-        if self.is_type_equal(&Bomb(BombPowerup::default())) {
-            return "💣 ";
-        }
-        "🎨 "
     }
 }

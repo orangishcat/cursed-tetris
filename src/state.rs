@@ -116,7 +116,7 @@ impl State {
                         if powerup {
                             format!(
                                 "{}{}",
-                                self.powerup.get_icon(),
+                                self.powerup.p_type.get_icon(),
                                 BLANK_STR.repeat(SCALE_X - 3)
                             )
                         } else if active_piece {

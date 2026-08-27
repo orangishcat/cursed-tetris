@@ -1,4 +1,5 @@
 use std::{
+    iter::once,
     os::macos::raw::stat,
     time::{Duration, Instant},
 };
@@ -16,7 +17,7 @@ use tui_big_text::{BigText, PixelSize};
 
 use crate::{
     piece::HasTile,
-    powerup::{BombPowerup, PaintballPowerup, PowerUp, PowerUpType},
+    powerup::{BombPowerup, PaintballPowerup, PowerUp, PowerUpType, RollerPowerup},
     screen::{
         AppScreen::{self, Lose},
         lose_screen::LoseScreen,
@@ -83,10 +84,16 @@ impl GameScreen {
             .build();
         frame.render_widget(right_vertical_title, right_text_area);
 
+        let powerups = [
+            PowerUpType::Bomb(BombPowerup::default()),
+            PowerUpType::Paintball(PaintballPowerup::default()),
+            PowerUpType::Roller(RollerPowerup::default()),
+        ];
+
         let [score_area, level_area, powerup_area, _] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(3),
-            Constraint::Length(5),
+            Constraint::Length(powerups.len() as u16 + 3),
             Constraint::Length(12),
         ])
         .flex(Flex::Center)
@@ -107,22 +114,22 @@ impl GameScreen {
             .title("Powerup")
             .title_alignment(HorizontalAlignment::Center);
         let powerup_content = powerup_block.inner(powerup_area);
-        let powerup_display = Paragraph::new(vec![
-            Line::from(vec![
-                Span::styled("[1]", Style::default().fg(Color::Gray)),
-                Span::from(" 💣"),
-                Span::styled("×", Style::default().fg(Color::DarkGray)),
-            ]),
-            Line::from(vec![
-                Span::styled("[2]", Style::default().fg(Color::Gray)),
-                Span::from(" 🎨"),
-                Span::styled("×", Style::default().fg(Color::DarkGray)),
-            ]),
-            Line::from(vec![Span::styled(
-                format!("{} left", state.powerup.count),
-                Style::default().fg(Color::Yellow),
-            )]),
-        ])
+        let powerup_display = Paragraph::new(
+            powerups
+                .into_iter()
+                .enumerate()
+                .map(|(i, p_type)| {
+                    Line::from(vec![
+                        Span::styled(format!("[{}]", i), Style::default().fg(Color::Gray)),
+                        Span::from(format!(" {}", p_type.get_icon())),
+                    ])
+                })
+                .chain(once(Line::from(vec![Span::styled(
+                    format!("{} left", state.powerup.count),
+                    Style::default().fg(Color::Yellow),
+                )])))
+                .collect::<Vec<Line>>(),
+        )
         .centered();
         frame.render_widget(powerup_block, powerup_area);
         frame.render_widget(powerup_display, powerup_content);
@@ -248,6 +255,11 @@ impl GameScreen {
                 state
                     .powerup
                     .toggle_type(PowerUpType::Paintball(PaintballPowerup::default()));
+            }
+            KeyCode::Char('3') => {
+                state
+                    .powerup
+                    .toggle_type(PowerUpType::Roller(RollerPowerup::default()));
             }
             KeyCode::Char(' ') => {
                 let mut attempts = 0;
