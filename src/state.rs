@@ -14,7 +14,7 @@ use ratatui::{
 
 use crate::{
     piece::{self, HasTile, Piece},
-    powerup::PowerUp,
+    powerup::{PowerUp, PowerUpType},
     task::Task,
 };
 
@@ -95,6 +95,11 @@ impl State {
 
     pub fn piece(&mut self) -> &mut Piece {
         &mut self.piece_queue[self.piece_queue_ind]
+    }
+
+    pub fn activate_powerup(&mut self, p_type: PowerUpType) {
+        self.powerup.toggle_type(p_type);
+        self.piece().reset();
     }
 
     pub fn construct_field(&mut self) -> Paragraph<'static> {

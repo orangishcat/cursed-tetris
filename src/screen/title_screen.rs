@@ -64,7 +64,7 @@ impl TitleScreen {
         let [title_area, piece_area, body_area] = Layout::vertical([
             Constraint::Length(5),
             Constraint::Length(3 * SCALE_Y as u16),
-            Constraint::Length(7),
+            Constraint::Length(8),
         ])
         .spacing(1)
         .areas(content);
@@ -134,9 +134,9 @@ impl TitleScreen {
             "A / ←: Move left",
             "D / →: Move right",
             "W / ↑: Rotate",
-            "S / ↓: Move down",
-            "Space: Snap downwards",
-            "1: Use powerup",
+            "S / ↓: Soft drop",
+            "Space: Hard drop",
+            "1/2/3: Use powerups",
         ]
         .map(|s| Line::from(vec![Span::from(s)]));
         let controls_para = Paragraph::new(lines.to_vec()).centered();

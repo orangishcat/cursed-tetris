@@ -40,7 +40,7 @@ impl RollerPowerup {
 
     pub fn recursive_delete(x: i8, y: i8, col: Color, state: &mut State) {
         add_data_task(
-            Duration::from_millis(100),
+            Duration::from_millis(200),
             Node { x, y },
             move |state, data| {
                 for i in 0..DIR_X.len() {

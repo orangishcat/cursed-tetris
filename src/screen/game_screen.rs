@@ -248,18 +248,12 @@ impl GameScreen {
             KeyCode::Down | KeyCode::Char('s') | KeyCode::Char('k') => {
                 self.move_if_valid(state, 0, -1);
             }
-            KeyCode::Char('1') => state
-                .powerup
-                .toggle_type(PowerUpType::Bomb(BombPowerup::default())),
+            KeyCode::Char('1') => state.activate_powerup(PowerUpType::Bomb(BombPowerup::default())),
             KeyCode::Char('2') => {
-                state
-                    .powerup
-                    .toggle_type(PowerUpType::Paintball(PaintballPowerup::default()));
+                state.activate_powerup(PowerUpType::Paintball(PaintballPowerup::default()))
             }
             KeyCode::Char('3') => {
-                state
-                    .powerup
-                    .toggle_type(PowerUpType::Roller(RollerPowerup::default()));
+                state.activate_powerup(PowerUpType::Roller(RollerPowerup::default()))
             }
             KeyCode::Char(' ') => {
                 let mut attempts = 0;
