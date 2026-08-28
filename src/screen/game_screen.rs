@@ -1,11 +1,6 @@
-use std::{
-    iter::once,
-    os::macos::raw::stat,
-    time::{Duration, Instant},
-};
+use std::iter::once;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use derivative::Derivative;
 use ratatui::{
     Frame,
     layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect},
@@ -164,10 +159,10 @@ impl GameScreen {
             Layout::vertical([Constraint::Length(6)].repeat(NEXT_LOOKUP))
                 .spacing(SCALE_Y as i16)
                 .areas(next_block.inner(next_area));
-        for i in 0..NEXT_LOOKUP {
+        for (i, piece) in piece_spaces.iter().enumerate().take(NEXT_LOOKUP) {
             frame.render_widget(
                 state.piece_queue[state.piece_queue_ind + i + 1].as_widget(),
-                piece_spaces[i],
+                *piece,
             );
         }
         frame.render_widget(next_block, next_area);

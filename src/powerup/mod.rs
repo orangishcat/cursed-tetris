@@ -1,5 +1,4 @@
 use std::cmp::max;
-use std::str::SplitTerminator;
 use std::time::Duration;
 
 use crate::piece::HasTile;
@@ -72,15 +71,8 @@ impl PowerUp {
         state.powerup.count -= 1;
     }
 
-    pub fn is_type_equal(&self, p_type: &PowerUpType) -> bool {
-        std::mem::discriminant(&self.p_type) == std::mem::discriminant(p_type)
-    }
-
     pub fn is_active(&self) -> bool {
-        match self.p_type {
-            None => false,
-            _ => true,
-        }
+        !matches!(self.p_type, None)
     }
 
     pub fn nudge(&mut self, x: i8, y: i8) {
@@ -89,7 +81,7 @@ impl PowerUp {
     }
 
     pub fn toggle_type(&mut self, p_type: PowerUpType) {
-        self.p_type = if self.count <= 0 { None } else { p_type };
+        self.p_type = if self.count == 0 { None } else { p_type };
     }
 
     pub fn reset(&mut self) {

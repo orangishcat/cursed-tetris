@@ -1,13 +1,8 @@
-use std::{
-    cmp::max,
-    collections::{BinaryHeap, VecDeque},
-    time::Duration,
-};
+use std::time::Duration;
 
 use ratatui::style::Color;
 
 use crate::{
-    piece::HasTile,
     powerup::add_gravity_task,
     state::{BOARD_HEIGHT, BOARD_WIDTH, State},
     task::{add_data_task, add_task},
@@ -33,7 +28,7 @@ impl RollerPowerup {
         Self::recursive_delete(cx, cy, col, state);
         add_task(
             Duration::from_millis(1000),
-            |state| add_gravity_task(state),
+            add_gravity_task,
             state,
         );
     }

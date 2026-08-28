@@ -20,7 +20,7 @@ impl Eq for Task {}
 
 impl PartialOrd for Task {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.time.cmp(&other.time))
+        Some(self.cmp(other))
     }
 }
 

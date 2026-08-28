@@ -5,7 +5,7 @@ use crossterm::event::KeyEvent;
 use ratatui::Frame;
 
 use crate::{
-    screen::{self, game_screen::GameScreen, lose_screen::LoseScreen, title_screen::TitleScreen},
+    screen::{game_screen::GameScreen, lose_screen::LoseScreen, title_screen::TitleScreen},
     state::State,
 };
 
@@ -18,10 +18,7 @@ pub enum AppScreen {
 
 impl AppScreen {
     pub fn init(&mut self, state: &mut State) {
-        match self {
-            Self::Game(screen) => screen.init(state),
-            _ => {}
-        }
+        if let Self::Game(screen) = self { screen.init(state) }
     }
     pub fn draw(&self, state: &mut State, frame: &mut Frame) {
         match self {
