@@ -4,6 +4,7 @@ use ratatui::style::Color;
 
 use crate::{
     piece::HasTile,
+    powerup::add_gravity_task,
     state::{BOARD_HEIGHT, BOARD_WIDTH, State},
     task::add_task,
 };
@@ -30,11 +31,12 @@ impl BombPowerup {
             }
         }
         add_task(
-            Duration::from_millis(800),
+            Duration::from_millis(500),
             |state| {
                 for (x, y) in reset_tiles {
                     state.tiles[x][y] = Color::Reset;
                 }
+                add_gravity_task(state);
             },
             state,
         );

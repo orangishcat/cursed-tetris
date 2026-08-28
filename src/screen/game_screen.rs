@@ -120,7 +120,7 @@ impl GameScreen {
                 .enumerate()
                 .map(|(i, p_type)| {
                     Line::from(vec![
-                        Span::styled(format!("[{}]", i), Style::default().fg(Color::Gray)),
+                        Span::styled(format!("[{}]", i + 1), Style::default().fg(Color::Gray)),
                         Span::from(format!(" {}", p_type.get_icon())),
                     ])
                 })

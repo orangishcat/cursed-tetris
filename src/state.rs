@@ -21,6 +21,10 @@ use crate::{
 pub const SOLID_STR: &str = "█";
 pub const LIGHT_STR: &str = "░";
 pub const BLANK_STR: &str = " ";
+
+// todo: add border along tiles
+pub const BORDERED_STR: &str = " ▕";
+
 pub const PIECES_PER_LEVEL: i32 = 16;
 pub const BOARD_WIDTH: usize = 10;
 pub const BOARD_HEIGHT: usize = 20;

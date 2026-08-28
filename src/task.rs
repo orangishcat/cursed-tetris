@@ -49,3 +49,14 @@ pub fn add_task(time: Duration, callback: impl FnOnce(&mut State) + 'static, sta
         run: Box::new(callback),
     }));
 }
+
+pub fn add_data_task<T>(
+    time: Duration,
+    data: T,
+    callback: impl FnOnce(&mut State, T) + 'static,
+    state: &mut State,
+) where
+    T: 'static,
+{
+    add_task(time, |state| callback(state, data), state);
+}

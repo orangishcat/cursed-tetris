@@ -1,11 +1,15 @@
 use std::cmp::max;
+use std::str::SplitTerminator;
+use std::time::Duration;
 
+use crate::piece::HasTile;
 use crate::powerup::PowerUpType::Paintball;
 use crate::powerup::PowerUpType::Roller;
 pub use crate::powerup::paintball::PaintballPowerup;
 pub use crate::powerup::roller::RollerPowerup;
 use crate::state::BOARD_HEIGHT;
 use crate::state::BOARD_WIDTH;
+use crate::task::add_task;
 use derivative::Derivative;
 
 use crate::{
@@ -68,6 +72,10 @@ impl PowerUp {
         state.powerup.count -= 1;
     }
 
+    pub fn is_type_equal(&self, p_type: &PowerUpType) -> bool {
+        std::mem::discriminant(&self.p_type) == std::mem::discriminant(p_type)
+    }
+
     pub fn is_active(&self) -> bool {
         match self.p_type {
             None => false,
@@ -81,11 +89,7 @@ impl PowerUp {
     }
 
     pub fn toggle_type(&mut self, p_type: PowerUpType) {
-        self.p_type = if self.count <= 0 || self.is_active() {
-            None
-        } else {
-            p_type
-        };
+        self.p_type = if self.count <= 0 { None } else { p_type };
     }
 
     pub fn reset(&mut self) {
@@ -93,4 +97,25 @@ impl PowerUp {
         self.y = BOARD_HEIGHT as i8 - 1;
         self.p_type = None;
     }
+}
+
+pub fn add_gravity_task(state: &mut State) {
+    add_task(
+        Duration::from_millis(200),
+        |state| {
+            let mut reschedule = false;
+            for column in &mut state.tiles {
+                if let Some(pos) = column.iter().position(|color| !color.has_tile())
+                    && column[pos..].iter().any(|color| color.has_tile())
+                {
+                    column.copy_within(pos + 1..BOARD_HEIGHT, pos);
+                    reschedule = true;
+                }
+            }
+            if reschedule {
+                add_gravity_task(state);
+            }
+        },
+        state,
+    );
 }
