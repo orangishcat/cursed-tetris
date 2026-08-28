@@ -1,5 +1,6 @@
+
 use crossterm::event::{KeyCode, KeyEvent};
-use rand::seq::SliceRandom;
+use rand::{random_range, seq::SliceRandom};
 use ratatui::{
     Frame,
     layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect},
@@ -43,10 +44,16 @@ pub struct TitleScreen {
 impl Default for TitleScreen {
     fn default() -> Self {
         let mut piece_widgets = (0..PIECE_LAYOUTS.len())
-            .map(|id| Piece::from_id(id).as_widget())
+            .map(|id| {
+                let mut piece = Piece::from_id(id);
+                for _ in 0..random_range(0..2) * 2 {
+                    piece.rotate();
+                }
+                piece.as_widget()
+            })
             .collect::<Vec<Paragraph<'static>>>();
         piece_widgets.shuffle(&mut rand::rng());
-        piece_widgets.truncate(3);
+        piece_widgets.truncate(6);
 
         Self {
             selected: MenuChoice::default(),
@@ -61,13 +68,18 @@ impl TitleScreen {
         let [content] = Layout::vertical([Constraint::Length(16 + 3 * SCALE_Y as u16)])
             .flex(Flex::Center)
             .areas(frame.area());
-        let [title_area, piece_area, body_area] = Layout::vertical([
-            Constraint::Length(5),
-            Constraint::Length(3 * SCALE_Y as u16),
-            Constraint::Length(8),
+        let [body_area] = Layout::vertical([Constraint::Length(30)])
+            .flex(Flex::Center)
+            .areas(content);
+
+        let [left_pieces, body, right_pieces] = Layout::horizontal([
+            Constraint::Length(5 * SCALE_X as u16),
+            Constraint::Length(57),
+            Constraint::Length(5 * SCALE_X as u16),
         ])
-        .spacing(1)
-        .areas(content);
+        .spacing(4)
+        .flex(Flex::Center)
+        .areas(body_area);
 
         let title = BigText::builder()
             .pixel_size(PixelSize::Quadrant)
@@ -79,15 +91,19 @@ impl TitleScreen {
                 Span::styled("Tetris", Style::default().fg(Color::Yellow)),
             ])])
             .build();
+        let [title_area, body_content] =
+            Layout::vertical([Constraint::Length(5), Constraint::Length(8)])
+                .spacing(1)
+                .flex(Flex::Center)
+                .areas(body);
+
         frame.render_widget(title, title_area);
 
-        let [body] = Layout::horizontal([Constraint::Length(50)])
-            .flex(Flex::Center)
-            .areas(body_area);
         let [menu_area, controls] =
             Layout::horizontal([Constraint::Length(20), Constraint::Length(30)])
                 .spacing(4)
-                .areas(body);
+                .flex(Flex::Center)
+                .areas(body_content);
 
         let [play_area, quit_area] = Layout::vertical([Constraint::Length(3); 2])
             .flex(Flex::Center)
@@ -118,13 +134,23 @@ impl TitleScreen {
             );
         }
 
-        let horiz_piece_areas: [Rect; 3] = Layout::horizontal(
-            [Constraint::Length(4 * SCALE_X as u16)].repeat(self.piece_widgets.len()),
-        )
-        .flex(Flex::Center)
-        .areas(piece_area);
-        for (i, widget) in self.piece_widgets.iter().enumerate() {
-            frame.render_widget(widget, horiz_piece_areas[i]);
+        let half_len = self.piece_widgets.len() / 2;
+        let vert_left_pieces: [Rect; 3] =
+            Layout::vertical([Constraint::Length(4 * SCALE_X as u16)].repeat(half_len))
+                .flex(Flex::Center)
+                .areas(left_pieces);
+
+        let vert_right_pieces: [Rect; 3] =
+            Layout::vertical([Constraint::Length(4 * SCALE_X as u16)].repeat(half_len))
+                .flex(Flex::Center)
+                .areas(right_pieces);
+
+        for (i, widget) in self.piece_widgets[0..half_len].iter().enumerate() {
+            frame.render_widget(widget, vert_left_pieces[i]);
+        }
+
+        for (i, widget) in self.piece_widgets[half_len..].iter().enumerate() {
+            frame.render_widget(widget, vert_right_pieces[i]);
         }
 
         let controls_block = Block::bordered()

@@ -85,11 +85,10 @@ impl GameScreen {
             PowerUpType::Roller(RollerPowerup::default()),
         ];
 
-        let [score_area, level_area, powerup_area, _] = Layout::vertical([
+        let [score_area, level_area, powerup_area] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length(powerups.len() as u16 + 3),
-            Constraint::Length(12),
         ])
         .flex(Flex::Center)
         .areas(left);

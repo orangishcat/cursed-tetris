@@ -1,4 +1,8 @@
-use std::{cmp::Reverse, collections::BinaryHeap, time::Duration};
+use std::{
+    cmp::{Reverse, max},
+    collections::BinaryHeap,
+    time::Duration,
+};
 
 use derivative::Derivative;
 use rand::seq::SliceRandom;
@@ -126,7 +130,7 @@ impl State {
                             format!(
                                 "{}{}",
                                 self.powerup.p_type.get_icon(),
-                                BLANK_STR.repeat(SCALE_X - 3)
+                                BLANK_STR.repeat(max(3, SCALE_X) - 3)
                             )
                         } else if active_piece {
                             LIGHT_STR.repeat(SCALE_X)
