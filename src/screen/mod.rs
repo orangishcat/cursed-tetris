@@ -1,30 +1,35 @@
-mod game_screen;
-mod lose_screen;
-mod title_screen;
+mod game;
+mod lose;
+mod options;
+mod title;
 use crossterm::event::KeyEvent;
 use ratatui::Frame;
 
 use crate::{
-    screen::{game_screen::GameScreen, lose_screen::LoseScreen, title_screen::TitleScreen},
+    screen::{game::GameScreen, lose::LoseScreen, options::OptionsScreen, title::TitleScreen},
     state::State,
 };
 
 pub enum AppScreen {
     Game(GameScreen),
     Title(TitleScreen),
+    Options(OptionsScreen),
     Lose(LoseScreen),
     Quit,
 }
 
 impl AppScreen {
     pub fn init(&mut self, state: &mut State) {
-        if let Self::Game(screen) = self { screen.init(state) }
+        if let Self::Game(screen) = self {
+            screen.init(state)
+        }
     }
     pub fn draw(&self, state: &mut State, frame: &mut Frame) {
         match self {
             Self::Game(screen) => screen.draw(state, frame),
             Self::Title(screen) => screen.draw(state, frame),
             Self::Lose(screen) => screen.draw(state, frame),
+            Self::Options(screen) => screen.draw(state, frame),
             Self::Quit => {}
         }
     }
@@ -33,6 +38,7 @@ impl AppScreen {
             Self::Game(screen) => screen.update(state),
             Self::Title(screen) => screen.update(state),
             Self::Lose(screen) => screen.update(state),
+            Self::Options(screen) => screen.update(state),
             Self::Quit => None,
         };
 
@@ -46,6 +52,7 @@ impl AppScreen {
             Self::Game(screen) => screen.handle_keypress(state, key),
             Self::Title(screen) => screen.handle_keypress(state, key),
             Self::Lose(screen) => screen.handle_keypress(state, key),
+            Self::Options(screen) => screen.handle_keypress(state, key),
             Self::Quit => {}
         }
     }

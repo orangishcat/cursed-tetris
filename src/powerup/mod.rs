@@ -98,7 +98,7 @@ pub fn add_gravity_task(state: &mut State) {
         |state| {
             let mut reschedule = false;
             for column in &mut state.tiles {
-                if column.iter().any(|color| *color == Color::DarkGray) {
+                if column.contains(&Color::DarkGray) {
                     reschedule = true;
                     break;
                 }

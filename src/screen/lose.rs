@@ -11,8 +11,8 @@ use tui_big_text::{BigText, PixelSize};
 use crate::{
     screen::{
         AppScreen::{self, Game, Quit, Title},
-        game_screen::GameScreen,
-        title_screen::TitleScreen,
+        game::GameScreen,
+        title::TitleScreen,
     },
     state::State,
 };

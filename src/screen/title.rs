@@ -1,4 +1,3 @@
-
 use crossterm::event::{KeyCode, KeyEvent};
 use rand::{random_range, seq::SliceRandom};
 use ratatui::{
@@ -13,8 +12,9 @@ use tui_big_text::{BigText, PixelSize};
 use crate::{
     piece::{PIECE_LAYOUTS, Piece},
     screen::{
-        AppScreen::{self, Game, Quit},
-        game_screen::GameScreen,
+        AppScreen::{self, Game, Options, Quit},
+        game::GameScreen,
+        options::OptionsScreen,
     },
     state::{SCALE_X, SCALE_Y, State},
 };
@@ -23,13 +23,22 @@ use crate::{
 enum MenuChoice {
     #[default]
     Play,
+    Options,
     Quit,
 }
 
 impl MenuChoice {
-    fn toggle(self) -> Self {
+    fn previous(self) -> Self {
         match self {
             Self::Play => Self::Quit,
+            Self::Options => Self::Play,
+            Self::Quit => Self::Options,
+        }
+    }
+    fn next(self) -> Self {
+        match self {
+            Self::Play => Self::Options,
+            Self::Options => Self::Quit,
             Self::Quit => Self::Play,
         }
     }
@@ -105,11 +114,12 @@ impl TitleScreen {
                 .flex(Flex::Center)
                 .areas(body_content);
 
-        let [play_area, quit_area] = Layout::vertical([Constraint::Length(3); 2])
+        let [play_area, options_area, quit_area] = Layout::vertical([Constraint::Length(3); 3])
             .flex(Flex::Center)
             .areas(menu_area);
         for (area, label, choice) in [
             (play_area, "Play: p", MenuChoice::Play),
+            (options_area, "Options: o", MenuChoice::Options),
             (quit_area, "Quit: q", MenuChoice::Quit),
         ] {
             let selected = self.selected == choice;
@@ -172,9 +182,8 @@ impl TitleScreen {
 
     pub fn handle_keypress(&mut self, _state: &mut State, key: &KeyEvent) {
         match key.code {
-            KeyCode::Up | KeyCode::Down | KeyCode::Char('w') | KeyCode::Char('s') => {
-                self.selected = self.selected.toggle()
-            }
+            KeyCode::Up | KeyCode::Char('w') => self.selected = self.selected.next(),
+            KeyCode::Down | KeyCode::Char('s') => self.selected = self.selected.previous(),
             KeyCode::Enter => self.activated = Some(self.selected),
             KeyCode::Char('p') => self.activated = Some(MenuChoice::Play),
             KeyCode::Char('q') => self.activated = Some(MenuChoice::Quit),
@@ -189,6 +198,7 @@ impl TitleScreen {
                 Some(Game(GameScreen::default()))
             }
             Some(MenuChoice::Quit) => Some(Quit),
+            Some(MenuChoice::Options) => Some(Options(OptionsScreen::default())),
             None => None,
         }
     }

@@ -15,7 +15,7 @@ use crate::{
     powerup::{BombPowerup, PaintballPowerup, PowerUp, PowerUpType, RollerPowerup},
     screen::{
         AppScreen::{self, Lose},
-        lose_screen::LoseScreen,
+        lose::LoseScreen,
     },
     state::{self, BOARD_HEIGHT, BOARD_WIDTH, NEXT_LOOKUP, SCALE_Y, State},
     task::add_task,
