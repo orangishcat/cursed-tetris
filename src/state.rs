@@ -124,6 +124,9 @@ impl State {
         let config = crate::config::config();
         let (board_width, board_height) =
             (config.board_width as usize, config.board_height as usize);
+        if board_width != self.tiles.len() || board_height != self.tiles[0].len() {
+            *self = State::default();
+        }
         let (scale_x, scale_y) = (config.scale_x as usize, config.scale_y as usize);
         let mut lines = Vec::new();
 

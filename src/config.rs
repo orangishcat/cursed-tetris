@@ -2,17 +2,17 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     path::PathBuf,
-    sync::{LazyLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{LazyLock, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Config {
-    pub scale_x: u8,      // 1-5
-    pub scale_y: u8,      // 1-5
-    pub board_width: u8,  // 4-50
-    pub board_height: u8, // 4-50
-    pub start_level: u8,  // 0-30
+    pub scale_x: u16,      // 1-5
+    pub scale_y: u16,      // 1-5
+    pub board_width: u16,  // 4-50
+    pub board_height: u16, // 4-50
+    pub start_level: u16,  // 0-30
 }
 
 impl Default for Config {
@@ -28,6 +28,7 @@ impl Default for Config {
 }
 
 static CONFIG: LazyLock<RwLock<Config>> = LazyLock::new(|| RwLock::new(Config::load()));
+static DEFAULT_CONFIG: OnceLock<Config> = OnceLock::new();
 
 pub fn config() -> RwLockReadGuard<'static, Config> {
     CONFIG.read().expect("config lock poisoned")
@@ -35,6 +36,10 @@ pub fn config() -> RwLockReadGuard<'static, Config> {
 
 pub fn config_mut() -> RwLockWriteGuard<'static, Config> {
     CONFIG.write().expect("config lock poisoned")
+}
+
+pub fn default_config() -> &'static Config {
+    DEFAULT_CONFIG.get_or_init(|| Config::default())
 }
 
 impl Config {

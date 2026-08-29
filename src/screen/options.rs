@@ -1,13 +1,17 @@
+use std::{cmp::max, fmt::format};
+
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     Frame,
     layout::{Constraint, Flex, HorizontalAlignment, Layout},
     style::{Color, Modifier, Style},
+    text::{Line, Span},
     widgets::{Block, BorderType, Paragraph},
 };
+use tui_big_text::{BigText, PixelSize};
 
 use crate::{
-    config::{config, config_mut},
+    config::{config, config_mut, default_config},
     screen::{AppScreen, title::TitleScreen},
     state::State,
 };
@@ -54,47 +58,77 @@ pub struct OptionsScreen {
 }
 
 impl OptionsScreen {
-    pub fn draw(&self, _state: &mut State, frame: &mut Frame) {
+    pub fn draw(&self, state: &mut State, frame: &mut Frame) {
         let config = config();
-        let [content] = Layout::vertical([Constraint::Length(24)])
+        let [content] = Layout::vertical([Constraint::Length(max(
+            32,
+            config.board_height * config.scale_y,
+        ))])
+        .flex(Flex::Center)
+        .areas(frame.area());
+        let [body, preview] = Layout::horizontal([
+            Constraint::Length(42),
+            Constraint::Length((config.board_width * config.scale_x) as u16),
+        ])
+        .flex(Flex::Center)
+        .spacing(4)
+        .areas(content);
+        let [title, buttons] = Layout::vertical([Constraint::Length(5), Constraint::Length(24)])
             .flex(Flex::Center)
-            .areas(frame.area());
-        let [body] = Layout::horizontal([Constraint::Length(42)])
-            .flex(Flex::Center)
-            .areas(content);
+            .areas(body);
+        frame.render_widget(
+            BigText::builder()
+                .pixel_size(PixelSize::Quadrant)
+                .centered()
+                .style(Style::default().add_modifier(Modifier::BOLD))
+                .lines(vec![Line::from(vec![Span::styled(
+                    "Options",
+                    Style::default().fg(Color::Yellow),
+                )])])
+                .build(),
+            title,
+        );
+
         let areas = Layout::vertical([Constraint::Length(3); 6])
+            .flex(Flex::Center)
             .spacing(1)
-            .split(body);
+            .split(buttons);
+        let default_config = default_config();
         let choices = [
             (
                 "Horizontal scale",
                 config.scale_x.to_string(),
+                default_config.scale_x.to_string(),
                 OptionChoice::ScaleX,
             ),
             (
                 "Vertical scale",
                 config.scale_y.to_string(),
+                default_config.scale_y.to_string(),
                 OptionChoice::ScaleY,
             ),
             (
                 "Board width",
                 config.board_width.to_string(),
+                default_config.board_width.to_string(),
                 OptionChoice::BoardWidth,
             ),
             (
                 "Board height",
                 config.board_height.to_string(),
+                default_config.board_height.to_string(),
                 OptionChoice::BoardHeight,
             ),
             (
                 "Starting level",
                 config.start_level.to_string(),
+                default_config.start_level.to_string(),
                 OptionChoice::StartLevel,
             ),
-            ("", "Back".to_string(), OptionChoice::Back),
+            ("", "Back".to_string(), "".to_string(), OptionChoice::Back),
         ];
 
-        for (index, (label, value, choice)) in choices.into_iter().enumerate() {
+        for (index, (label, value, default_value, choice)) in choices.into_iter().enumerate() {
             let selected = self.selected == choice;
             let style = if selected {
                 Style::default()
@@ -105,7 +139,15 @@ impl OptionsScreen {
                 Style::default()
             };
             let block = Block::bordered()
-                .title(label)
+                .title(format!(
+                    "{}{}",
+                    label,
+                    if value != default_value && !default_value.is_empty() {
+                        format!(" ({})", default_value)
+                    } else {
+                        "".to_string()
+                    }
+                ))
                 .title_alignment(HorizontalAlignment::Center)
                 .border_type(if selected {
                     BorderType::Double
@@ -116,13 +158,15 @@ impl OptionsScreen {
             let text = if choice == OptionChoice::Back {
                 value
             } else {
-                format!("←  {value}  →")
+                format!("←  {value}  →",)
             };
             frame.render_widget(
                 Paragraph::new(text).centered().style(style).block(block),
                 areas[index],
             );
         }
+        let game_area = state.construct_field();
+        frame.render_widget(game_area, preview);
     }
 
     pub fn handle_keypress(&mut self, _state: &mut State, key: &KeyEvent) {
@@ -147,15 +191,16 @@ impl OptionsScreen {
             OptionChoice::ScaleY => (&mut config.scale_y, 1, 5),
             OptionChoice::BoardWidth => (&mut config.board_width, 4, 50),
             OptionChoice::BoardHeight => (&mut config.board_height, 4, 50),
-            OptionChoice::StartLevel => (&mut config.start_level, 0, 30),
+            OptionChoice::StartLevel => (&mut config.start_level, 1, 30),
             OptionChoice::Back => return,
         };
-        *value = (*value as i16 + direction as i16).clamp(min, max) as u8;
-        config.save();
+        *value = (*value as i16 + direction as i16).clamp(min, max) as u16;
     }
 
     pub fn update(&self, _state: &mut State) -> Option<AppScreen> {
-        self.go_back
-            .then(|| AppScreen::Title(TitleScreen::default()))
+        self.go_back.then(|| {
+            config().save();
+            AppScreen::Title(TitleScreen::default())
+        })
     }
 }

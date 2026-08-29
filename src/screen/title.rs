@@ -76,7 +76,7 @@ impl Default for TitleScreen {
 impl TitleScreen {
     pub fn draw(&self, _state: &mut State, frame: &mut Frame) {
         let config = config();
-        let (scale_x, scale_y) = (config.scale_x as u16, config.scale_y as u16);
+        let (scale_x, scale_y) = (config.scale_x, config.scale_y);
         drop(config);
         let [content] = Layout::vertical([Constraint::Length(16 + 3 * scale_y)])
             .flex(Flex::Center)
