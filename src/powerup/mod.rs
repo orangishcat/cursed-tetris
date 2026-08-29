@@ -10,6 +10,7 @@ use crate::state::BOARD_HEIGHT;
 use crate::state::BOARD_WIDTH;
 use crate::task::add_task;
 use derivative::Derivative;
+use ratatui::style::Color;
 
 use crate::{
     powerup::PowerUpType::{Bomb, None},
@@ -93,10 +94,14 @@ impl PowerUp {
 
 pub fn add_gravity_task(state: &mut State) {
     add_task(
-        Duration::from_millis(200),
+        Duration::from_millis(50),
         |state| {
             let mut reschedule = false;
             for column in &mut state.tiles {
+                if column.iter().any(|color| *color == Color::DarkGray) {
+                    reschedule = true;
+                    break;
+                }
                 if let Some(pos) = column.iter().position(|color| !color.has_tile())
                     && column[pos..].iter().any(|color| color.has_tile())
                 {
