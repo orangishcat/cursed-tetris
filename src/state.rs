@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use derivative::Derivative;
 use rand::seq::SliceRandom;
 use ratatui::{
     layout::HorizontalAlignment,
@@ -30,17 +29,11 @@ pub const BLANK_STR: &str = " ";
 pub const _BORDERED_STR: &str = " ▕";
 
 pub const PIECES_PER_LEVEL: i32 = 16;
-pub const BOARD_WIDTH: usize = 10;
-pub const BOARD_HEIGHT: usize = 20;
-pub const SCALE_X: usize = 4;
-pub const SCALE_Y: usize = 2;
 pub const NEXT_LOOKUP: usize = 3;
 
-#[derive(Derivative)]
-#[derivative(Default)]
 pub struct State {
     pub score: u32,
-    pub tiles: [[Color; BOARD_HEIGHT]; BOARD_WIDTH],
+    pub tiles: Vec<Vec<Color>>,
     pub piece_queue_ind: usize,
     pub game_ended: bool,
     pub placed_pieces: i32,
@@ -48,17 +41,38 @@ pub struct State {
 
     pub task_queue: BinaryHeap<Reverse<Task>>,
 
-    #[derivative(Default(value = "1"))]
     pub level: i32,
 
-    #[derivative(Default(value = "PIECES_PER_LEVEL"))]
     pub levelup_pieces: i32,
 
-    #[derivative(Default(value = "State::create_pieces()"))]
     pub piece_queue: Vec<Piece>,
 
-    #[derivative(Default(value = "Duration::from_millis(750)"))]
     pub gravity_dur: Duration,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        let config = crate::config::config();
+        let level = config.start_level as i32;
+        let board_width = config.board_width as usize;
+        let board_height = config.board_height as usize;
+        drop(config);
+        let gravity_dur =
+            Duration::from_millis((750.0 * (level.max(1) as f64).powf(-0.68144)) as u64);
+        Self {
+            score: 0,
+            tiles: vec![vec![Color::Reset; board_height]; board_width],
+            piece_queue_ind: 0,
+            game_ended: false,
+            placed_pieces: 0,
+            powerup: PowerUp::default(),
+            task_queue: BinaryHeap::new(),
+            level,
+            levelup_pieces: ((PIECES_PER_LEVEL as f32) * (level.max(1) as f32).powf(1.25)) as i32,
+            piece_queue: Self::create_pieces(),
+            gravity_dur,
+        }
+    }
 }
 
 impl State {
@@ -107,10 +121,14 @@ impl State {
     }
 
     pub fn construct_field(&mut self) -> Paragraph<'static> {
+        let config = crate::config::config();
+        let (board_width, board_height) =
+            (config.board_width as usize, config.board_height as usize);
+        let (scale_x, scale_y) = (config.scale_x as usize, config.scale_y as usize);
         let mut lines = Vec::new();
 
-        for y in (0..BOARD_HEIGHT).rev() {
-            let spans: Vec<Span<'static>> = (0..BOARD_WIDTH)
+        for y in (0..board_height).rev() {
+            let spans: Vec<Span<'static>> = (0..board_width)
                 .map(|x| {
                     let powerup = self.powerup.is_active()
                         && x == self.powerup.x as usize
@@ -130,24 +148,24 @@ impl State {
                             format!(
                                 "{}{}",
                                 self.powerup.p_type.get_icon(),
-                                BLANK_STR.repeat(max(3, SCALE_X) - 3)
+                                BLANK_STR.repeat(max(3, scale_x) - 3)
                             )
                         } else if active_piece {
-                            LIGHT_STR.repeat(SCALE_X)
+                            LIGHT_STR.repeat(scale_x)
                         } else if col != Color::Reset {
-                            SOLID_STR.repeat(SCALE_X)
+                            SOLID_STR.repeat(scale_x)
                         } else {
-                            BLANK_STR.repeat(SCALE_X)
+                            BLANK_STR.repeat(scale_x)
                         },
                         Style::default().fg(col),
                     )
                 })
                 .collect();
             let line = Line::from(spans);
-            for _ in 1..SCALE_Y {
+            for _ in 1..scale_y {
                 let mut clone = line.clone();
                 if self.powerup.is_active() && self.powerup.y as usize == y {
-                    clone.spans[self.powerup.x as usize] = Span::from(BLANK_STR.repeat(SCALE_X))
+                    clone.spans[self.powerup.x as usize] = Span::from(BLANK_STR.repeat(scale_x))
                 }
                 lines.push(clone);
             }
@@ -163,6 +181,9 @@ impl State {
     }
 
     pub fn blit_active_piece_to_tiles(&mut self) {
+        let config = crate::config::config();
+        let (board_width, board_height) =
+            (config.board_width as usize, config.board_height as usize);
         let (positions, color) = {
             let p = self.piece();
             (p.abs_pos(), p.color())
@@ -170,7 +191,7 @@ impl State {
         for [abs_x, abs_y] in positions {
             let x = abs_x as usize;
             let y = abs_y as usize;
-            if abs_x < 0 || x >= BOARD_WIDTH || abs_y < 0 || y >= BOARD_HEIGHT {
+            if abs_x < 0 || x >= board_width || abs_y < 0 || y >= board_height {
                 continue;
             }
             self.tiles[x][y] = color;
@@ -178,26 +199,32 @@ impl State {
     }
 
     pub fn check_rows(&mut self) {
+        let config = crate::config::config();
+        let (board_width, board_height) =
+            (config.board_width as usize, config.board_height as usize);
         self.eliminate_full_rows();
-        if (0..BOARD_WIDTH).any(|x| self.tiles[x][BOARD_HEIGHT - 1].has_tile()) {
+        if (0..board_width).any(|x| self.tiles[x][board_height - 1].has_tile()) {
             self.game_ended = true;
         }
     }
 
     pub fn eliminate_full_rows(&mut self) {
+        let config = crate::config::config();
+        let (board_width, board_height) =
+            (config.board_width as usize, config.board_height as usize);
         let mut y = 0;
-        while y < BOARD_HEIGHT {
-            let full_row = (0..BOARD_WIDTH).all(|x| self.tiles[x][y].has_tile());
+        while y < board_height {
+            let full_row = (0..board_width).all(|x| self.tiles[x][y].has_tile());
             if !full_row {
                 y += 1;
                 continue;
             }
 
             for column in &mut self.tiles {
-                column.copy_within(y + 1..BOARD_HEIGHT, y);
-                column[BOARD_HEIGHT - 1] = Color::Reset;
+                column.copy_within(y + 1..board_height, y);
+                column[board_height - 1] = Color::Reset;
             }
-            self.score += BOARD_WIDTH as u32;
+            self.score += board_width as u32;
             break;
         }
     }

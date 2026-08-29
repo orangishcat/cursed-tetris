@@ -10,13 +10,14 @@ use ratatui::{
 use tui_big_text::{BigText, PixelSize};
 
 use crate::{
+    config::config,
     piece::{PIECE_LAYOUTS, Piece},
     screen::{
         AppScreen::{self, Game, Options, Quit},
         game::GameScreen,
         options::OptionsScreen,
     },
-    state::{SCALE_X, SCALE_Y, State},
+    state::State,
 };
 
 #[derive(Default, Clone, Copy, PartialEq, Eq)]
@@ -74,7 +75,10 @@ impl Default for TitleScreen {
 
 impl TitleScreen {
     pub fn draw(&self, _state: &mut State, frame: &mut Frame) {
-        let [content] = Layout::vertical([Constraint::Length(16 + 3 * SCALE_Y as u16)])
+        let config = config();
+        let (scale_x, scale_y) = (config.scale_x as u16, config.scale_y as u16);
+        drop(config);
+        let [content] = Layout::vertical([Constraint::Length(16 + 3 * scale_y)])
             .flex(Flex::Center)
             .areas(frame.area());
         let [body_area] = Layout::vertical([Constraint::Length(30)])
@@ -82,9 +86,9 @@ impl TitleScreen {
             .areas(content);
 
         let [left_pieces, body, right_pieces] = Layout::horizontal([
-            Constraint::Length(5 * SCALE_X as u16),
+            Constraint::Length(5 * scale_x),
             Constraint::Length(57),
-            Constraint::Length(5 * SCALE_X as u16),
+            Constraint::Length(5 * scale_x),
         ])
         .spacing(4)
         .flex(Flex::Center)
@@ -101,7 +105,7 @@ impl TitleScreen {
             ])])
             .build();
         let [title_area, body_content] =
-            Layout::vertical([Constraint::Length(5), Constraint::Length(8)])
+            Layout::vertical([Constraint::Length(5), Constraint::Length(10)])
                 .spacing(1)
                 .flex(Flex::Center)
                 .areas(body);
@@ -146,12 +150,12 @@ impl TitleScreen {
 
         let half_len = self.piece_widgets.len() / 2;
         let vert_left_pieces: [Rect; 3] =
-            Layout::vertical([Constraint::Length(4 * SCALE_X as u16)].repeat(half_len))
+            Layout::vertical([Constraint::Length(4 * scale_x)].repeat(half_len))
                 .flex(Flex::Center)
                 .areas(left_pieces);
 
         let vert_right_pieces: [Rect; 3] =
-            Layout::vertical([Constraint::Length(4 * SCALE_X as u16)].repeat(half_len))
+            Layout::vertical([Constraint::Length(4 * scale_x)].repeat(half_len))
                 .flex(Flex::Center)
                 .areas(right_pieces);
 
@@ -163,6 +167,9 @@ impl TitleScreen {
             frame.render_widget(widget, vert_right_pieces[i]);
         }
 
+        let [controls_area] = Layout::vertical([Constraint::Length(8)])
+            .flex(Flex::Center)
+            .areas(controls);
         let controls_block = Block::bordered()
             .title("Controls")
             .title_alignment(HorizontalAlignment::Center);
@@ -176,16 +183,17 @@ impl TitleScreen {
         ]
         .map(|s| Line::from(vec![Span::from(s)]));
         let controls_para = Paragraph::new(lines.to_vec()).centered();
-        frame.render_widget(controls_para, controls_block.inner(controls));
-        frame.render_widget(controls_block, controls);
+        frame.render_widget(controls_para, controls_block.inner(controls_area));
+        frame.render_widget(controls_block, controls_area);
     }
 
     pub fn handle_keypress(&mut self, _state: &mut State, key: &KeyEvent) {
         match key.code {
-            KeyCode::Up | KeyCode::Char('w') => self.selected = self.selected.next(),
-            KeyCode::Down | KeyCode::Char('s') => self.selected = self.selected.previous(),
+            KeyCode::Up | KeyCode::Char('w') => self.selected = self.selected.previous(),
+            KeyCode::Down | KeyCode::Char('s') => self.selected = self.selected.next(),
             KeyCode::Enter => self.activated = Some(self.selected),
             KeyCode::Char('p') => self.activated = Some(MenuChoice::Play),
+            KeyCode::Char('o') => self.activated = Some(MenuChoice::Options),
             KeyCode::Char('q') => self.activated = Some(MenuChoice::Quit),
             _ => {}
         }

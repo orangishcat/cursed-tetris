@@ -11,13 +11,14 @@ use ratatui::{
 use tui_big_text::{BigText, PixelSize};
 
 use crate::{
+    config::config,
     piece::HasTile,
     powerup::{BombPowerup, PaintballPowerup, PowerUp, PowerUpType, RollerPowerup},
     screen::{
         AppScreen::{self, Lose},
         lose::LoseScreen,
     },
-    state::{self, BOARD_HEIGHT, BOARD_WIDTH, NEXT_LOOKUP, SCALE_Y, State},
+    state::{NEXT_LOOKUP, State},
     task::add_task,
 };
 
@@ -29,16 +30,19 @@ impl GameScreen {
         Self::add_gravity_task(state);
     }
     pub fn draw(&self, state: &mut State, frame: &mut Frame) {
-        let [row] = Layout::vertical([Constraint::Length(
-            (state::BOARD_HEIGHT * state::SCALE_Y + 2) as u16,
-        )])
-        .flex(Flex::Center)
-        .areas(frame.area());
+        let config = config();
+        let (board_width, board_height) =
+            (config.board_width as usize, config.board_height as usize);
+        let (scale_x, scale_y) = (config.scale_x as usize, config.scale_y as usize);
+        drop(config);
+        let [row] = Layout::vertical([Constraint::Length((board_height * scale_y + 2) as u16)])
+            .flex(Flex::Center)
+            .areas(frame.area());
 
         let [left_text, left, center, right, right_text] = Layout::horizontal([
             Constraint::Length(8),
             Constraint::Length(12),
-            Constraint::Length((state::BOARD_WIDTH * state::SCALE_X + 2) as u16),
+            Constraint::Length((board_width * scale_x + 2) as u16),
             Constraint::Length(24),
             Constraint::Length(8),
         ])
@@ -131,7 +135,7 @@ impl GameScreen {
         let game_area = state.construct_field();
         let [placed_pieces_area, next_area] = Layout::vertical([
             Constraint::Length(3),
-            Constraint::Length(SCALE_Y as u16 * 4 * NEXT_LOOKUP as u16),
+            Constraint::Length(scale_y as u16 * 4 * NEXT_LOOKUP as u16),
         ])
         .flex(Flex::Center)
         .areas(right);
@@ -156,7 +160,7 @@ impl GameScreen {
             .title_alignment(HorizontalAlignment::Center);
         let piece_spaces: [Rect; NEXT_LOOKUP] =
             Layout::vertical([Constraint::Length(6)].repeat(NEXT_LOOKUP))
-                .spacing(SCALE_Y as i16)
+                .spacing(scale_y as i16)
                 .areas(next_block.inner(next_area));
         for (i, piece) in piece_spaces.iter().enumerate().take(NEXT_LOOKUP) {
             frame.render_widget(
@@ -190,6 +194,9 @@ impl GameScreen {
     }
 
     fn has_collided(&mut self, state: &mut State) -> bool {
+        let config = config();
+        let (board_width, board_height) =
+            (config.board_width as usize, config.board_height as usize);
         if state.powerup.is_active() {
             if state.powerup.x < 0 || state.powerup.y <= 0 {
                 return true;
@@ -197,14 +204,14 @@ impl GameScreen {
 
             let x = state.powerup.x as usize;
             let y = state.powerup.y as usize - 1;
-            return x >= BOARD_WIDTH || y >= BOARD_HEIGHT || state.tiles[x][y].has_tile();
+            return x >= board_width || y >= board_height || state.tiles[x][y].has_tile();
         }
         let p = state.piece();
         for [abs_x, abs_y] in p.abs_pos() {
-            if abs_y > state::BOARD_HEIGHT as i8 {
+            if abs_y > board_height as i8 {
                 continue;
             }
-            if abs_x < 0 || abs_x >= state::BOARD_WIDTH as i8 {
+            if abs_x < 0 || abs_x >= board_width as i8 {
                 continue;
             }
             if abs_y <= 0 || state.tiles[abs_x as usize][abs_y as usize - 1].has_tile() {
@@ -250,10 +257,11 @@ impl GameScreen {
                 state.activate_powerup(PowerUpType::Roller(RollerPowerup::default()))
             }
             KeyCode::Char(' ') => {
+                let board_height = config().board_height as usize;
                 let mut attempts = 0;
                 while !self.check_collision(state)
                     && self.validate(state)
-                    && attempts < BOARD_HEIGHT
+                    && attempts < board_height
                 {
                     self.move_if_valid(state, 0, -1);
                     attempts += 1;
@@ -288,6 +296,9 @@ impl GameScreen {
     }
 
     fn validate(&self, state: &mut State) -> bool {
+        let config = config();
+        let (board_width, board_height) =
+            (config.board_width as usize, config.board_height as usize);
         if state.powerup.is_active() {
             if state.powerup.x < 0 || state.powerup.y < 0 {
                 return false;
@@ -295,17 +306,17 @@ impl GameScreen {
 
             let x = state.powerup.x as usize;
             let y = state.powerup.y as usize;
-            return x < BOARD_WIDTH && y < BOARD_HEIGHT && !state.tiles[x][y].has_tile();
+            return x < board_width && y < board_height && !state.tiles[x][y].has_tile();
         }
         for [abs_x, abs_y] in state.piece().abs_pos() {
             let x_size = abs_x as usize;
             let y_size = abs_y as usize;
-            if y_size >= BOARD_HEIGHT {
+            if y_size >= board_height {
                 continue;
             }
             if abs_x < 0
                 || abs_y < 0
-                || x_size >= BOARD_WIDTH
+                || x_size >= board_width
                 || state.tiles[x_size][y_size].has_tile()
             {
                 return false;

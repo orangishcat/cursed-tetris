@@ -6,8 +6,6 @@ use crate::powerup::PowerUpType::Paintball;
 use crate::powerup::PowerUpType::Roller;
 pub use crate::powerup::paintball::PaintballPowerup;
 pub use crate::powerup::roller::RollerPowerup;
-use crate::state::BOARD_HEIGHT;
-use crate::state::BOARD_WIDTH;
 use crate::task::add_task;
 use derivative::Derivative;
 use ratatui::style::Color;
@@ -48,9 +46,9 @@ impl PowerUpType {
 pub struct PowerUp {
     pub p_type: PowerUpType,
 
-    #[derivative(Default(value = "BOARD_WIDTH as i8 / 2 "))]
+    #[derivative(Default(value = "crate::config::config().board_width as i8 / 2 "))]
     pub x: i8,
-    #[derivative(Default(value = "BOARD_HEIGHT as i8 - 1"))]
+    #[derivative(Default(value = "crate::config::config().board_height as i8 - 1"))]
     pub y: i8,
 
     #[derivative(Default(value = "5"))]
@@ -86,8 +84,8 @@ impl PowerUp {
     }
 
     pub fn reset(&mut self) {
-        self.x = BOARD_WIDTH as i8 / 2;
-        self.y = BOARD_HEIGHT as i8 - 1;
+        self.x = crate::config::config().board_width as i8 / 2;
+        self.y = crate::config::config().board_height as i8 - 1;
         self.p_type = None;
     }
 }
@@ -105,7 +103,8 @@ pub fn add_gravity_task(state: &mut State) {
                 if let Some(pos) = column.iter().position(|color| !color.has_tile())
                     && column[pos..].iter().any(|color| color.has_tile())
                 {
-                    column.copy_within(pos + 1..BOARD_HEIGHT, pos);
+                    let board_height = crate::config::config().board_height as usize;
+                    column.copy_within(pos + 1..board_height, pos);
                     reschedule = true;
                 }
             }

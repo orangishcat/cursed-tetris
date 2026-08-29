@@ -4,7 +4,7 @@ use ratatui::style::Color;
 
 use crate::{
     powerup::add_gravity_task,
-    state::{BOARD_HEIGHT, BOARD_WIDTH, State},
+    state::State,
     task::{add_data_task, add_task},
 };
 
@@ -35,13 +35,14 @@ impl RollerPowerup {
             Duration::ZERO, // this can be done without data task but whatever
             Node { x, y, depth },
             move |state, node| {
+                let config = crate::config::config();
                 for i in 0..DIR_X.len() {
                     let new_x = node.x + DIR_X[i];
                     let new_y = node.y + DIR_Y[i];
                     if new_x < 0
-                        || new_x >= BOARD_WIDTH as i8
+                        || new_x >= config.board_width as i8
                         || new_y < 0
-                        || new_y >= BOARD_HEIGHT as i8
+                        || new_y >= config.board_height as i8
                         || state.tiles[new_x as usize][new_y as usize] != col
                     {
                         continue;

@@ -1,4 +1,7 @@
-use crate::state::{self, BLANK_STR, NEXT_LOOKUP, SCALE_X, SCALE_Y, SOLID_STR};
+use crate::{
+    config::config,
+    state::{BLANK_STR, NEXT_LOOKUP, SOLID_STR},
+};
 use ratatui::{
     style::{Color, Style},
     text::{Line, Span},
@@ -50,8 +53,8 @@ impl Piece {
             id,
             layout: PIECE_LAYOUTS[id],
             pos: [
-                (state::BOARD_WIDTH as i8) / 2,
-                state::BOARD_HEIGHT as i8 - 1,
+                (config().board_width as i8) / 2,
+                config().board_height as i8 - 1,
             ],
         }
     }
@@ -100,6 +103,8 @@ impl Piece {
         false
     }
     pub fn as_widget(&self) -> Paragraph<'static> {
+        let config = config();
+        let (scale_x, scale_y) = (config.scale_x as usize, config.scale_y as usize);
         let min_x = self
             .layout
             .iter()
@@ -132,16 +137,16 @@ impl Piece {
                     let filled = self.layout.contains(&[x, y]);
                     Span::styled(
                         if filled {
-                            SOLID_STR.repeat(SCALE_X)
+                            SOLID_STR.repeat(scale_x)
                         } else {
-                            BLANK_STR.repeat(SCALE_X)
+                            BLANK_STR.repeat(scale_x)
                         },
                         Style::default().fg(self.color()),
                     )
                 })
                 .collect();
             let line = Line::from(spans).centered();
-            for _ in 1..SCALE_Y {
+            for _ in 1..scale_y {
                 lines.push(line.clone());
             }
             lines.push(line);
