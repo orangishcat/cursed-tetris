@@ -3,12 +3,68 @@ mod lose;
 mod options;
 mod title;
 use crossterm::event::KeyEvent;
-use ratatui::Frame;
+use ratatui::{
+    Frame,
+    layout::{Constraint, Flex, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, BorderType, Clear, Paragraph, Wrap},
+};
 
 use crate::{
+    config::config,
     screen::{game::GameScreen, lose::LoseScreen, options::OptionsScreen, title::TitleScreen},
     state::State,
 };
+
+const MINIMUM_FIXED_WIDTH: u32 = 64;
+const MINIMUM_HEIGHT: u32 = 24;
+
+fn required_terminal_size() -> (u32, u32) {
+    let config = config();
+    required_terminal_size_for(
+        config.board_width,
+        config.board_height,
+        config.scale_x,
+        config.scale_y,
+    )
+}
+
+fn required_terminal_size_for(
+    board_width: u16,
+    board_height: u16,
+    scale_x: u16,
+    scale_y: u16,
+) -> (u32, u32) {
+    (
+        MINIMUM_FIXED_WIDTH + u32::from(board_width) * u32::from(scale_x),
+        MINIMUM_HEIGHT.max(u32::from(board_height) * u32::from(scale_y) + 2),
+    )
+}
+
+fn terminal_too_small(area: Rect) -> bool {
+    let (required_width, required_height) = required_terminal_size();
+    u32::from(area.width) < required_width || u32::from(area.height) < required_height
+}
+
+fn render_size_warning(frame: &mut Frame) {
+    let [area] = Layout::vertical([Constraint::Length(4)])
+        .flex(Flex::End)
+        .areas(frame.area());
+    let warning = Paragraph::new(vec![
+        Line::from(vec![Span::styled(
+            "Window too small! The tetris board will be partially cut off from the screen!",
+            Style::default().fg(Color::LightRed).bold(),
+        )]),
+        Line::from("Make your terminal window bigger or lower the scale in Options."),
+    ])
+    .centered()
+    .wrap(Wrap { trim: true })
+    .style(Style::default().fg(Color::Red))
+    .block(Block::bordered().border_type(BorderType::Double));
+    frame.render_widget(Clear, area);
+    frame.render_widget(warning, area);
+}
 
 pub enum AppScreen {
     Game(GameScreen),

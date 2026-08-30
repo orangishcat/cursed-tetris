@@ -102,7 +102,7 @@ impl State {
             self.levelup_pieces = Self::next_levelup_count(self.level);
             self.gravity_dur = Self::graivty_dur(self.level);
 
-            if self.level % 3 == 0 {
+            if self.level.is_multiple_of(3) {
                 self.powerup.count += 1;
             }
         }
@@ -140,7 +140,7 @@ impl State {
         if level < 1 {
             return 0;
         }
-        (6_u32 * level.pow(2_u32)) + 8 as u32
+        (6_u32 * level.pow(2_u32)) + 8_u32
     }
 
     pub fn piece(&mut self) -> &mut Piece {

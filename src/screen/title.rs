@@ -16,6 +16,7 @@ use crate::{
         AppScreen::{self, Game, Options, Quit},
         game::GameScreen,
         options::OptionsScreen,
+        render_size_warning, terminal_too_small,
     },
     state::State,
 };
@@ -49,6 +50,7 @@ pub struct TitleScreen {
     selected: MenuChoice,
     activated: Option<MenuChoice>,
     piece_widgets: Vec<Paragraph<'static>>,
+    play_disabled: bool,
 }
 
 impl Default for TitleScreen {
@@ -69,14 +71,16 @@ impl Default for TitleScreen {
             selected: MenuChoice::default(),
             activated: None,
             piece_widgets,
+            play_disabled: false,
         }
     }
 }
 
 impl TitleScreen {
-    pub fn draw(&self, _state: &mut State, frame: &mut Frame) {
+    pub fn draw(&mut self, _state: &mut State, frame: &mut Frame) {
+        self.play_disabled = terminal_too_small(frame.area());
         let config = config();
-        let (scale_x, scale_y) = (config.scale_x, config.scale_y);
+        let (scale_x, scale_y, high_score) = (config.scale_x, config.scale_y, config.high_score);
         drop(config);
         let [content] = Layout::vertical([Constraint::Length(17 + 3 * scale_y)])
             .flex(Flex::Center)
@@ -118,16 +122,24 @@ impl TitleScreen {
                 .flex(Flex::Center)
                 .areas(body_content);
 
-        let [play_area, options_area, quit_area] = Layout::vertical([Constraint::Length(3); 3])
-            .flex(Flex::Center)
-            .areas(menu_area);
+        let [high_score_area, play_area, options_area, quit_area] = Layout::vertical([
+            Constraint::Length(2),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Length(3),
+        ])
+        .flex(Flex::Center)
+        .areas(menu_area);
         for (area, label, choice) in [
             (play_area, "Play: p", MenuChoice::Play),
             (options_area, "Options: o", MenuChoice::Options),
             (quit_area, "Quit: q", MenuChoice::Quit),
         ] {
             let selected = self.selected == choice;
-            let style = if selected {
+            let disabled = choice == MenuChoice::Play && self.play_disabled;
+            let style = if disabled {
+                Style::default().fg(Color::DarkGray)
+            } else if selected {
                 Style::default()
                     .fg(Color::Black)
                     .bg(Color::Yellow)
@@ -147,6 +159,12 @@ impl TitleScreen {
                 area,
             );
         }
+        frame.render_widget(
+            Paragraph::new(format!("High score: {high_score}"))
+                .centered()
+                .style(Style::default().fg(Color::Yellow)),
+            high_score_area,
+        );
 
         let half_len = self.piece_widgets.len() / 2;
         let vert_left_pieces: [Rect; 3] =
@@ -188,14 +206,20 @@ impl TitleScreen {
         let controls_para = Paragraph::new(lines.to_vec()).centered();
         frame.render_widget(controls_para, controls_block.inner(controls_area));
         frame.render_widget(controls_block, controls_area);
+
+        if self.play_disabled {
+            render_size_warning(frame);
+        }
     }
 
     pub fn handle_keypress(&mut self, _state: &mut State, key: &KeyEvent) {
         match key.code {
             KeyCode::Up | KeyCode::Char('w') => self.selected = self.selected.previous(),
             KeyCode::Down | KeyCode::Char('s') => self.selected = self.selected.next(),
-            KeyCode::Enter => self.activated = Some(self.selected),
-            KeyCode::Char('p') => self.activated = Some(MenuChoice::Play),
+            KeyCode::Enter if self.selected != MenuChoice::Play || !self.play_disabled => {
+                self.activated = Some(self.selected)
+            }
+            KeyCode::Char('p') if !self.play_disabled => self.activated = Some(MenuChoice::Play),
             KeyCode::Char('o') => self.activated = Some(MenuChoice::Options),
             KeyCode::Char('q') => self.activated = Some(MenuChoice::Quit),
             _ => {}
@@ -204,10 +228,11 @@ impl TitleScreen {
 
     pub fn update(&self, state: &mut State) -> Option<AppScreen> {
         match self.activated {
-            Some(MenuChoice::Play) => {
+            Some(MenuChoice::Play) if !self.play_disabled => {
                 *state = State::default();
                 Some(Game(GameScreen::default()))
             }
+            Some(MenuChoice::Play) => None,
             Some(MenuChoice::Quit) => Some(Quit),
             Some(MenuChoice::Options) => Some(Options(OptionsScreen::default())),
             None => None,

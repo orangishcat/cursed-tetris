@@ -9,6 +9,7 @@ use ratatui::{
 use tui_big_text::{BigText, PixelSize};
 
 use crate::{
+    config::config,
     screen::{
         AppScreen::{self, Game, Quit, Title},
         game::GameScreen,
@@ -51,6 +52,7 @@ pub struct LoseScreen {
 
 impl LoseScreen {
     pub fn draw(&self, state: &mut State, frame: &mut Frame) {
+        let high_score = config().high_score;
         let [content] = Layout::vertical([Constraint::Length(25)])
             .flex(Flex::Center)
             .areas(frame.area());
@@ -76,8 +78,12 @@ impl LoseScreen {
         let stat_areas = Layout::vertical([Constraint::Length(3); 3]).split(stats);
         for (area, title, value) in [
             (stat_areas[0], "Score", state.score.to_string()),
-            (stat_areas[1], "Level", state.level.to_string()),
-            (stat_areas[2], "Pieces", state.placed_pieces.to_string()),
+            (stat_areas[1], "High Score", high_score.to_string()),
+            (
+                stat_areas[2],
+                "Level / Pieces",
+                format!("{} / {}", state.level, state.placed_pieces),
+            ),
         ] {
             frame.render_widget(
                 Paragraph::new(value).centered().block(

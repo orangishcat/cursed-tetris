@@ -14,7 +14,7 @@ use ratatui::{
 use tui_big_text::{BigText, PixelSize};
 
 use crate::{
-    config::config,
+    config::{config, config_mut},
     piece::{HasTile, Piece},
     powerup::{BombPowerup, PaintballPowerup, PowerUp, PowerUpType, RollerPowerup},
     screen::{
@@ -227,6 +227,11 @@ impl GameScreen {
         }
         let collided = self.check_collision(state);
         if collided && state.game_ended {
+            let mut config = config_mut();
+            if state.score > config.high_score {
+                config.high_score = state.score;
+                config.save();
+            }
             return Some(Lose(LoseScreen::default()));
         }
         None
@@ -278,6 +283,9 @@ impl GameScreen {
         add_task(
             state.gravity_dur,
             |state| {
+                if state.game_ended {
+                    return;
+                }
                 if !state.paused {
                     if state.powerup.is_active() {
                         state.powerup.nudge(0, -1);

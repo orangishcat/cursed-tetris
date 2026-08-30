@@ -1,5 +1,3 @@
-use std::usize;
-
 use crossterm::event::{KeyCode, KeyEvent};
 use derivative::Derivative;
 use ratatui::{
@@ -13,7 +11,7 @@ use tui_big_text::{BigText, PixelSize};
 
 use crate::{
     config::{config, config_mut, default_config},
-    screen::{AppScreen, title::TitleScreen},
+    screen::{AppScreen, render_size_warning, terminal_too_small, title::TitleScreen},
     state::State,
 };
 
@@ -193,6 +191,10 @@ impl OptionsScreen {
         }
         let game_area = self.test_state.construct_field();
         frame.render_widget(game_area, preview);
+
+        if terminal_too_small(frame.area()) {
+            render_size_warning(frame);
+        }
     }
 
     pub fn handle_keypress(&mut self, _state: &mut State, key: &KeyEvent) {
@@ -236,7 +238,7 @@ impl OptionsScreen {
             OptionChoice::BoardWidth => config.board_width = default.board_width,
             OptionChoice::BoardHeight => config.board_height = default.board_height,
             OptionChoice::StartLevel => config.start_level = default.start_level,
-            OptionChoice::Back => return,
+            OptionChoice::Back => (),
         };
     }
 

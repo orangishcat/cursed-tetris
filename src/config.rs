@@ -13,6 +13,7 @@ pub struct Config {
     pub board_width: u16,  // 4-50
     pub board_height: u16, // 4-50
     pub start_level: u16,  // 0-30
+    pub high_score: u32,
 }
 
 impl Default for Config {
@@ -23,6 +24,7 @@ impl Default for Config {
             board_width: 10,
             board_height: 20,
             start_level: 1,
+            high_score: 0,
         }
     }
 }
