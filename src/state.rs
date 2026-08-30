@@ -115,7 +115,7 @@ impl State {
         if level < 1 {
             return 0;
         }
-        (2_u32 * level.pow(2_u32)) + 8 as u32
+        (6_u32 * level.pow(2_u32)) + 8 as u32
     }
 
     pub fn piece(&mut self) -> &mut Piece {

@@ -1,4 +1,4 @@
-use std::{cmp::max, usize};
+use std::usize;
 
 use crossterm::event::{KeyCode, KeyEvent};
 use derivative::Derivative;
