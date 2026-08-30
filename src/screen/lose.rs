@@ -6,12 +6,14 @@ use ratatui::{
     text::Line,
     widgets::{Block, BorderType, Paragraph},
 };
+use std::time::Duration;
 use tui_big_text::{BigText, PixelSize};
 
 use crate::{
     config::config,
     screen::{
         AppScreen::{self, Game, Quit, Title},
+        format_elapsed,
         game::GameScreen,
         title::TitleScreen,
     },
@@ -48,17 +50,25 @@ impl MenuChoice {
 pub struct LoseScreen {
     selected: MenuChoice,
     activated: Option<MenuChoice>,
+    elapsed: Duration,
 }
 
 impl LoseScreen {
+    pub fn new(elapsed: Duration) -> Self {
+        Self {
+            elapsed,
+            ..Self::default()
+        }
+    }
+
     pub fn draw(&self, state: &mut State, frame: &mut Frame) {
         let high_score = config().high_score;
-        let [content] = Layout::vertical([Constraint::Length(25)])
+        let [content] = Layout::vertical([Constraint::Length(15)])
             .flex(Flex::Center)
             .areas(frame.area());
         let [banner_area, stats_area, actions_area] = Layout::vertical([
             Constraint::Length(3),
-            Constraint::Length(9),
+            Constraint::Length(7),
             Constraint::Length(3),
         ])
         .spacing(1)
@@ -72,18 +82,25 @@ impl LoseScreen {
             .build();
         frame.render_widget(game_over, banner_area);
 
-        let [stats] = Layout::horizontal([Constraint::Length(30)])
+        let [first_row, second_row] =
+            Layout::vertical([Constraint::Length(3); 2]).areas(stats_area);
+        let [score_area, high_score_area] = Layout::horizontal([Constraint::Length(24); 2])
+            .spacing(1)
             .flex(Flex::Center)
-            .areas(stats_area);
-        let stat_areas = Layout::vertical([Constraint::Length(3); 3]).split(stats);
+            .areas(first_row);
+        let [level_pieces_area, time_area] = Layout::horizontal([Constraint::Length(24); 2])
+            .spacing(1)
+            .flex(Flex::Center)
+            .areas(second_row);
         for (area, title, value) in [
-            (stat_areas[0], "Score", state.score.to_string()),
-            (stat_areas[1], "High Score", high_score.to_string()),
+            (score_area, "Score", state.score.to_string()),
+            (high_score_area, "High Score", high_score.to_string()),
             (
-                stat_areas[2],
+                level_pieces_area,
                 "Level / Pieces",
                 format!("{} / {}", state.level, state.placed_pieces),
             ),
+            (time_area, "Time", format_elapsed(self.elapsed)),
         ] {
             frame.render_widget(
                 Paragraph::new(value).centered().block(

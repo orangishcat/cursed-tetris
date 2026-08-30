@@ -19,6 +19,7 @@ use crate::{
     powerup::{BombPowerup, PaintballPowerup, PowerUp, PowerUpType, RollerPowerup},
     screen::{
         AppScreen::{self, Lose, Title},
+        format_elapsed,
         lose::LoseScreen,
         title::TitleScreen,
     },
@@ -30,11 +31,20 @@ use crate::{
 pub struct GameScreen {
     to_title: bool,
     last_resumed_at: Option<Instant>,
+    active_since: Option<Instant>,
+    elapsed: Duration,
 }
 
 impl GameScreen {
     pub fn init(&mut self, state: &mut State) {
+        self.active_since = Some(Instant::now());
         Self::add_gravity_task(state);
+    }
+    fn elapsed(&self) -> Duration {
+        self.elapsed
+            + self
+                .active_since
+                .map_or(Duration::ZERO, |started| started.elapsed())
     }
     pub fn draw(&self, state: &mut State, frame: &mut Frame) {
         let config = config();
@@ -96,11 +106,12 @@ impl GameScreen {
             PowerUpType::Roller(RollerPowerup::default()),
         ];
 
-        let [score_area, level_area, hold_area, powerup_area] = Layout::vertical([
+        let [score_area, level_area, hold_area, powerup_area, time_area] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Length((scale_y * 4 + 2) as u16),
             Constraint::Length(powerups.len() as u16 + 3),
+            Constraint::Length(3),
         ])
         .flex(Flex::Center)
         .areas(left);
@@ -149,6 +160,17 @@ impl GameScreen {
         .centered();
         frame.render_widget(powerup_block, powerup_area);
         frame.render_widget(powerup_display, powerup_content);
+
+        frame.render_widget(
+            Paragraph::new(format_elapsed(self.elapsed()))
+                .centered()
+                .block(
+                    Block::bordered()
+                        .title("Time")
+                        .title_alignment(HorizontalAlignment::Center),
+                ),
+            time_area,
+        );
 
         let [board_area, score_effect_area] = Layout::horizontal([
             Constraint::Length((board_width * scale_x + 2) as u16),
@@ -259,7 +281,7 @@ impl GameScreen {
                 config.high_score = state.score;
                 config.save();
             }
-            return Some(Lose(LoseScreen::default()));
+            return Some(Lose(LoseScreen::new(self.elapsed())));
         }
         None
     }
@@ -332,11 +354,15 @@ impl GameScreen {
             if state.paused {
                 state.paused = false;
                 self.last_resumed_at = Some(Instant::now());
+                self.active_since = Some(Instant::now());
             } else if self
                 .last_resumed_at
                 .is_none_or(|resumed_at| resumed_at.elapsed() >= Duration::from_millis(500))
             {
                 state.paused = true;
+                if let Some(started) = self.active_since.take() {
+                    self.elapsed += started.elapsed();
+                }
             }
             return;
         }

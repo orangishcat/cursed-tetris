@@ -10,6 +10,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, BorderType, Clear, Paragraph, Wrap},
 };
+use std::time::Duration;
 
 use crate::{
     config::config,
@@ -19,6 +20,11 @@ use crate::{
 
 const MINIMUM_FIXED_WIDTH: u32 = 64;
 const MINIMUM_HEIGHT: u32 = 24;
+
+pub(crate) fn format_elapsed(duration: Duration) -> String {
+    let total_seconds = duration.as_secs();
+    format!("{:02}:{:02}", total_seconds / 60, total_seconds % 60)
+}
 
 fn required_terminal_size() -> (u32, u32) {
     let config = config();
