@@ -73,22 +73,23 @@ impl OptionsScreen {
             Constraint::Length(config.board_width * config.scale_x + 2),
         ])
         .flex(Flex::Center)
-        .spacing(4)
+        .spacing(8)
         .areas(content);
         let [preview] =
             Layout::vertical([Constraint::Length(config.board_height * config.scale_y + 2)])
                 .flex(Flex::Center)
                 .areas(preview_horiz);
         let [title, desc, buttons] = Layout::vertical([
-            Constraint::Length(5),
             Constraint::Length(3),
+            Constraint::Length(1),
             Constraint::Length(24),
         ])
+        .spacing(1)
         .flex(Flex::Center)
         .areas(body);
         frame.render_widget(
             BigText::builder()
-                .pixel_size(PixelSize::Quadrant)
+                .pixel_size(PixelSize::Sextant)
                 .centered()
                 .style(Style::default().add_modifier(Modifier::BOLD))
                 .lines(vec![Line::from(vec![Span::styled(
@@ -99,16 +100,13 @@ impl OptionsScreen {
             title,
         );
         frame.render_widget(
-            Paragraph::new(vec![Line::from(vec![Span::from(
-                "←→ to change, r to reset to default",
-            )])])
-            .alignment(HorizontalAlignment::Center),
+            Paragraph::new(vec![Line::from("←→ to change, r to reset to default")])
+                .alignment(HorizontalAlignment::Center),
             desc,
         );
 
-        let areas = Layout::vertical([Constraint::Length(3); 6])
+        let areas = Layout::vertical([Constraint::Length(3); 7])
             .flex(Flex::Center)
-            .spacing(1)
             .split(buttons);
         let default_config = default_config();
         let choices = [
@@ -184,7 +182,7 @@ impl OptionsScreen {
             };
             frame.render_widget(
                 Paragraph::new(text).centered().style(style).block(block),
-                areas[index],
+                areas[index + (index == areas.len() - 2) as usize],
             );
         }
 
@@ -270,5 +268,6 @@ fn build_preview_state() -> State {
             place_if_valid(&mut state, x, y, col);
         }
     }
+    state.piece().nudge(0, -2);
     state
 }

@@ -63,7 +63,7 @@ impl LoseScreen {
         .areas(content);
 
         let game_over = BigText::builder()
-            .pixel_size(PixelSize::Quadrant)
+            .pixel_size(PixelSize::Sextant)
             .centered()
             .style(Style::default().add_modifier(Modifier::BOLD).light_red())
             .lines(vec![Line::from("Game Over!")])

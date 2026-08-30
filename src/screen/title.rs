@@ -95,7 +95,7 @@ impl TitleScreen {
         .areas(body_area);
 
         let title = BigText::builder()
-            .pixel_size(PixelSize::Quadrant)
+            .pixel_size(PixelSize::Sextant)
             .centered()
             .style(Style::default().add_modifier(Modifier::BOLD))
             .lines(vec![Line::from(vec![
@@ -105,7 +105,7 @@ impl TitleScreen {
             ])])
             .build();
         let [title_area, body_content] =
-            Layout::vertical([Constraint::Length(5), Constraint::Length(11)])
+            Layout::vertical([Constraint::Length(3), Constraint::Length(11)])
                 .spacing(1)
                 .flex(Flex::Center)
                 .areas(body);

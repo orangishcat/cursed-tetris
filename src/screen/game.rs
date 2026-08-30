@@ -1,4 +1,7 @@
-use std::iter::once;
+use std::{
+    iter::once,
+    time::{Duration, Instant},
+};
 
 use crossterm::event::{KeyCode, KeyEvent, ModifierKeyCode};
 use ratatui::{
@@ -6,13 +9,13 @@ use ratatui::{
     layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span},
-    widgets::{Block, BorderType, Clear, Paragraph},
+    widgets::{Block, BorderType, Paragraph},
 };
 use tui_big_text::{BigText, PixelSize};
 
 use crate::{
     config::config,
-    piece::HasTile,
+    piece::{HasTile, Piece},
     powerup::{BombPowerup, PaintballPowerup, PowerUp, PowerUpType, RollerPowerup},
     screen::{
         AppScreen::{self, Lose, Title},
@@ -26,6 +29,7 @@ use crate::{
 #[derive(Default)]
 pub struct GameScreen {
     to_title: bool,
+    last_resumed_at: Option<Instant>,
 }
 
 impl GameScreen {
@@ -116,7 +120,7 @@ impl GameScreen {
             .title("Hold")
             .title_alignment(HorizontalAlignment::Center);
         if let Some(id) = state.held_piece {
-            let mut held_piece = crate::piece::Piece::from_id(id);
+            let mut held_piece = Piece::from_id(id);
             held_piece.rotate();
             frame.render_widget(held_piece.as_widget(), hold_block.inner(hold_area));
         }
@@ -146,7 +150,37 @@ impl GameScreen {
         frame.render_widget(powerup_block, powerup_area);
         frame.render_widget(powerup_display, powerup_content);
 
-        let game_area = state.construct_field();
+        if !state.paused {
+            let game_area = state.construct_field();
+            frame.render_widget(game_area, center);
+        } else {
+            let pause_block = Block::bordered()
+                .border_type(BorderType::Double)
+                .border_style(Style::default().fg(Color::Yellow));
+            let [pause_title_area, pause_controls_area] =
+                Layout::vertical([Constraint::Length(3), Constraint::Length(2)])
+                    .spacing(1)
+                    .flex(Flex::Center)
+                    .areas(pause_block.inner(center));
+            let pause_title = BigText::builder()
+                .pixel_size(PixelSize::Sextant)
+                .centered()
+                .style(Style::default().fg(Color::Yellow))
+                .lines(vec![Line::from(Span::styled(
+                    "PAUSED",
+                    Style::default().bold(),
+                ))])
+                .build();
+            let pause_controls = Paragraph::new(vec![
+                Line::from("Esc/p: Resume"),
+                Line::from("t: Return to title"),
+            ])
+            .alignment(HorizontalAlignment::Center);
+            frame.render_widget(pause_block, center);
+            frame.render_widget(pause_title, pause_title_area);
+            frame.render_widget(pause_controls, pause_controls_area);
+        }
+
         let [placed_pieces_area, next_area] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(scale_y as u16 * 4 * NEXT_LOOKUP as u16),
@@ -154,7 +188,6 @@ impl GameScreen {
         .flex(Flex::Center)
         .areas(right);
 
-        frame.render_widget(game_area, center);
         let placed_pieces_block = Block::bordered()
             .title("Pieces / Levelup")
             .title_alignment(HorizontalAlignment::Center);
@@ -183,30 +216,6 @@ impl GameScreen {
             );
         }
         frame.render_widget(next_block, next_area);
-
-        if state.paused {
-            let [popup_row] = Layout::vertical([Constraint::Length(5)])
-                .flex(Flex::Center)
-                .areas(frame.area());
-            let [popup_area] = Layout::horizontal([Constraint::Length(24)])
-                .flex(Flex::Center)
-                .areas(popup_row);
-            let pause_popup = Paragraph::new(vec![
-                Line::from("Esc/p: Resume"),
-                Line::from("t: Return to title"),
-            ])
-            .centered()
-            .block(
-                Block::bordered()
-                    .title("Paused")
-                    .title_alignment(HorizontalAlignment::Center)
-                    .border_type(BorderType::Double)
-                    .border_style(Style::default().fg(Color::LightYellow)),
-            );
-
-            frame.render_widget(Clear, popup_area);
-            frame.render_widget(pause_popup, popup_area);
-        }
     }
 
     pub fn update(&mut self, state: &mut State) -> Option<AppScreen> {
@@ -285,7 +294,15 @@ impl GameScreen {
 
     pub fn handle_keypress(&mut self, state: &mut State, key: &KeyEvent) {
         if matches!(key.code, KeyCode::Esc | KeyCode::Char('p')) {
-            state.paused = !state.paused;
+            if state.paused {
+                state.paused = false;
+                self.last_resumed_at = Some(Instant::now());
+            } else if self
+                .last_resumed_at
+                .is_none_or(|resumed_at| resumed_at.elapsed() >= Duration::from_millis(500))
+            {
+                state.paused = true;
+            }
             return;
         }
         if state.paused {
