@@ -55,7 +55,7 @@ pub struct State {
 impl Default for State {
     fn default() -> Self {
         let config = config();
-        let level = config.start_level as i32;
+        let level = config.start_level as u32;
         let board_width = config.board_width as usize;
         let board_height = config.board_height as usize;
         drop(config);
@@ -71,7 +71,7 @@ impl Default for State {
             powerup: PowerUp::default(),
             task_queue: BinaryHeap::new(),
             level,
-            levelup_pieces: ((PIECES_PER_LEVEL as f32) * (level.max(1) as f32).powf(1.25)) as i32,
+            levelup_pieces: ((PIECES_PER_LEVEL as f32) * (level.max(1) as f32).powf(1.25)) as u32,
             piece_queue: Self::create_pieces(),
             gravity_dur,
         }
@@ -111,8 +111,8 @@ impl State {
         }
     }
 
-    fn next_levelup_count(&self) -> i32 {
-        ((PIECES_PER_LEVEL as f32) * (self.level as f32).powf(1.25)) as i32
+    fn next_levelup_count(&self) -> u32 {
+        ((PIECES_PER_LEVEL as f32) * (self.level as f32).powf(1.25)) as u32
     }
 
     pub fn piece(&mut self) -> &mut Piece {
