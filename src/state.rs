@@ -29,7 +29,6 @@ pub const BLANK_STR: &str = " ";
 // todo: add border along tiles
 pub const _BORDERED_STR: &str = " ▕";
 
-pub const PIECES_PER_LEVEL: i32 = 16;
 pub const NEXT_LOOKUP: usize = 3;
 
 pub struct State {
@@ -59,21 +58,19 @@ impl Default for State {
         let board_width = config.board_width as usize;
         let board_height = config.board_height as usize;
         drop(config);
-        let gravity_dur =
-            Duration::from_millis((750.0 * (level.max(1) as f64).powf(-0.68144)) as u64);
         Self {
             score: 0,
             tiles: vec![vec![Color::Reset; board_height]; board_width],
             piece_queue_ind: 0,
             game_ended: false,
             paused: false,
-            placed_pieces: 0,
+            placed_pieces: Self::next_levelup_count(level - 1),
             powerup: PowerUp::default(),
             task_queue: BinaryHeap::new(),
             level,
-            levelup_pieces: ((PIECES_PER_LEVEL as f32) * (level.max(1) as f32).powf(1.25)) as u32,
+            levelup_pieces: Self::next_levelup_count(level),
             piece_queue: Self::create_pieces(),
-            gravity_dur,
+            gravity_dur: Self::graivty_dur(level),
         }
     }
 }
@@ -101,9 +98,8 @@ impl State {
         if self.placed_pieces > self.levelup_pieces {
             self.level += 1;
             self.score += self.level * 10;
-            self.levelup_pieces = self.next_levelup_count();
-            self.gravity_dur =  // custom exponenetial curve for gravity ms
-                Duration::from_millis((750.0 * (self.level as f64).powf(-0.68144)) as u64);
+            self.levelup_pieces = Self::next_levelup_count(self.level);
+            self.gravity_dur = Self::graivty_dur(self.level);
 
             if self.level % 3 == 0 {
                 self.powerup.count += 1;
@@ -111,8 +107,15 @@ impl State {
         }
     }
 
-    fn next_levelup_count(&self) -> u32 {
-        ((PIECES_PER_LEVEL as f32) * (self.level as f32).powf(1.25)) as u32
+    fn graivty_dur(level: u32) -> Duration {
+        Duration::from_millis((750.0 * 1.0 / level as f32) as u64)
+    }
+
+    fn next_levelup_count(level: u32) -> u32 {
+        if level < 1 {
+            return 0;
+        }
+        (2_u32 * level.pow(2_u32)) + 8 as u32
     }
 
     pub fn piece(&mut self) -> &mut Piece {
