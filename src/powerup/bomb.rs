@@ -2,7 +2,9 @@ use std::time::Duration;
 
 use ratatui::style::Color;
 
-use crate::{piece::HasTile, powerup::add_gravity_task, state::State, task::add_task};
+use crate::{
+    config::config, piece::HasTile, powerup::add_gravity_task, state::State, task::add_task,
+};
 
 const BOMB_RADIUS: usize = 2;
 
@@ -11,7 +13,7 @@ pub struct BombPowerup {}
 
 impl BombPowerup {
     pub fn on_collide(&self, cx: i8, cy: i8, state: &mut State) {
-        let config = crate::config::config();
+        let config = config();
         let center_x = cx as usize;
         let center_y = cy as usize;
         let mut reset_tiles = vec![];

@@ -1,6 +1,7 @@
-use std::{cmp::max, fmt::format};
+use std::{cmp::max, usize};
 
 use crossterm::event::{KeyCode, KeyEvent};
+use derivative::Derivative;
 use ratatui::{
     Frame,
     layout::{Constraint, Flex, HorizontalAlignment, Layout},
@@ -51,28 +52,33 @@ impl OptionChoice {
     }
 }
 
-#[derive(Default)]
+#[derive(Derivative)]
+#[derivative(Default)]
 pub struct OptionsScreen {
     selected: OptionChoice,
     go_back: bool,
+
+    #[derivative(Default(value = "build_preview_state()"))]
+    test_state: State,
 }
 
 impl OptionsScreen {
-    pub fn draw(&self, state: &mut State, frame: &mut Frame) {
+    pub fn draw(&mut self, _state: &mut State, frame: &mut Frame) {
         let config = config();
-        let [content] = Layout::vertical([Constraint::Length(max(
-            32,
-            config.board_height * config.scale_y,
-        ))])
-        .flex(Flex::Center)
-        .areas(frame.area());
-        let [body, preview] = Layout::horizontal([
+        let [content] = Layout::vertical([Constraint::Fill(1)])
+            .flex(Flex::Center)
+            .areas(frame.area());
+        let [body, preview_horiz] = Layout::horizontal([
             Constraint::Length(42),
-            Constraint::Length((config.board_width * config.scale_x) as u16),
+            Constraint::Length(config.board_width * config.scale_x + 2),
         ])
         .flex(Flex::Center)
         .spacing(4)
         .areas(content);
+        let [preview] =
+            Layout::vertical([Constraint::Length(config.board_height * config.scale_y + 2)])
+                .flex(Flex::Center)
+                .areas(preview_horiz);
         let [title, buttons] = Layout::vertical([Constraint::Length(5), Constraint::Length(24)])
             .flex(Flex::Center)
             .areas(body);
@@ -165,7 +171,13 @@ impl OptionsScreen {
                 areas[index],
             );
         }
-        let game_area = state.construct_field();
+
+        if config.board_width != self.test_state.tiles.len() as u16
+            || config.board_height != self.test_state.tiles[0].len() as u16
+        {
+            self.test_state = build_preview_state();
+        }
+        let game_area = self.test_state.construct_field();
         frame.render_widget(game_area, preview);
     }
 
@@ -187,7 +199,7 @@ impl OptionsScreen {
         }
         let mut config = config_mut();
         let (value, min, max) = match self.selected {
-            OptionChoice::ScaleX => (&mut config.scale_x, 1, 5),
+            OptionChoice::ScaleX => (&mut config.scale_x, 1, 8),
             OptionChoice::ScaleY => (&mut config.scale_y, 1, 5),
             OptionChoice::BoardWidth => (&mut config.board_width, 4, 50),
             OptionChoice::BoardHeight => (&mut config.board_height, 4, 50),
@@ -203,4 +215,27 @@ impl OptionsScreen {
             AppScreen::Title(TitleScreen::default())
         })
     }
+}
+
+fn place_if_valid(state: &mut State, x: usize, y: usize, col: Color) {
+    if x >= state.tiles.len() || y >= state.tiles[0].len() {
+        return;
+    }
+
+    state.tiles[x][y] = col;
+}
+
+fn build_preview_state() -> State {
+    let mut state = State::default();
+    let pieces = [
+        ([(4_usize, 0), (5, 0), (6, 0), (7, 0)], Color::Blue),
+        ([(6, 1), (7, 1), (7, 2), (8, 2)], Color::Magenta),
+        ([(8, 0), (9, 0), (8, 1), (9, 1)], Color::Yellow),
+    ];
+    for (pos, col) in pieces {
+        for (x, y) in pos {
+            place_if_valid(&mut state, x, y, col);
+        }
+    }
+    state
 }

@@ -6,7 +6,7 @@ use std::{
 
 use ratatui::DefaultTerminal;
 
-use crate::{screen::AppScreen, state::State, task::update_tasks};
+use crate::{config::config, screen::AppScreen, state::State, task::update_tasks};
 
 pub const FRAME_TIME: Duration = Duration::from_nanos(1_000_000_000 / 24);
 
@@ -49,6 +49,7 @@ impl App {
             self.screen.update(&mut self.state);
             self.should_quit |= self.screen.should_quit();
         }
+        config().save();
         Ok(())
     }
 }

@@ -16,6 +16,7 @@ use ratatui::{
 };
 
 use crate::{
+    config::config,
     piece::{self, HasTile, Piece},
     powerup::{PowerUp, PowerUpType},
     task::Task,
@@ -52,7 +53,7 @@ pub struct State {
 
 impl Default for State {
     fn default() -> Self {
-        let config = crate::config::config();
+        let config = config();
         let level = config.start_level as i32;
         let board_width = config.board_width as usize;
         let board_height = config.board_height as usize;
@@ -121,12 +122,9 @@ impl State {
     }
 
     pub fn construct_field(&mut self) -> Paragraph<'static> {
-        let config = crate::config::config();
+        let config = config();
         let (board_width, board_height) =
             (config.board_width as usize, config.board_height as usize);
-        if board_width != self.tiles.len() || board_height != self.tiles[0].len() {
-            *self = State::default();
-        }
         let (scale_x, scale_y) = (config.scale_x as usize, config.scale_y as usize);
         let mut lines = Vec::new();
 
@@ -184,7 +182,7 @@ impl State {
     }
 
     pub fn blit_active_piece_to_tiles(&mut self) {
-        let config = crate::config::config();
+        let config = config();
         let (board_width, board_height) =
             (config.board_width as usize, config.board_height as usize);
         let (positions, color) = {
@@ -202,7 +200,7 @@ impl State {
     }
 
     pub fn check_rows(&mut self) {
-        let config = crate::config::config();
+        let config = config();
         let (board_width, board_height) =
             (config.board_width as usize, config.board_height as usize);
         self.eliminate_full_rows();
@@ -212,7 +210,7 @@ impl State {
     }
 
     pub fn eliminate_full_rows(&mut self) {
-        let config = crate::config::config();
+        let config = config();
         let (board_width, board_height) =
             (config.board_width as usize, config.board_height as usize);
         let mut y = 0;

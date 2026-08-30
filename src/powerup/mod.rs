@@ -1,6 +1,7 @@
 use std::cmp::max;
 use std::time::Duration;
 
+use crate::config::config;
 use crate::piece::HasTile;
 use crate::powerup::PowerUpType::Paintball;
 use crate::powerup::PowerUpType::Roller;
@@ -46,9 +47,9 @@ impl PowerUpType {
 pub struct PowerUp {
     pub p_type: PowerUpType,
 
-    #[derivative(Default(value = "crate::config::config().board_width as i8 / 2 "))]
+    #[derivative(Default(value = "config().board_width as i8 / 2 "))]
     pub x: i8,
-    #[derivative(Default(value = "crate::config::config().board_height as i8 - 1"))]
+    #[derivative(Default(value = "config().board_height as i8 - 1"))]
     pub y: i8,
 
     #[derivative(Default(value = "5"))]
@@ -84,8 +85,8 @@ impl PowerUp {
     }
 
     pub fn reset(&mut self) {
-        self.x = crate::config::config().board_width as i8 / 2;
-        self.y = crate::config::config().board_height as i8 - 1;
+        self.x = config().board_width as i8 / 2;
+        self.y = config().board_height as i8 - 1;
         self.p_type = None;
     }
 }
@@ -103,7 +104,7 @@ pub fn add_gravity_task(state: &mut State) {
                 if let Some(pos) = column.iter().position(|color| !color.has_tile())
                     && column[pos..].iter().any(|color| color.has_tile())
                 {
-                    let board_height = crate::config::config().board_height as usize;
+                    let board_height = config().board_height as usize;
                     column.copy_within(pos + 1..board_height, pos);
                     reschedule = true;
                 }

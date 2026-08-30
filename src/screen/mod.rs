@@ -24,7 +24,7 @@ impl AppScreen {
             screen.init(state)
         }
     }
-    pub fn draw(&self, state: &mut State, frame: &mut Frame) {
+    pub fn draw(&mut self, state: &mut State, frame: &mut Frame) {
         match self {
             Self::Game(screen) => screen.draw(state, frame),
             Self::Title(screen) => screen.draw(state, frame),

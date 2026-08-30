@@ -8,7 +8,7 @@ use std::{
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Config {
-    pub scale_x: u16,      // 1-5
+    pub scale_x: u16,      // 1-8
     pub scale_y: u16,      // 1-5
     pub board_width: u16,  // 4-50
     pub board_height: u16, // 4-50
@@ -39,12 +39,12 @@ pub fn config_mut() -> RwLockWriteGuard<'static, Config> {
 }
 
 pub fn default_config() -> &'static Config {
-    DEFAULT_CONFIG.get_or_init(|| Config::default())
+    DEFAULT_CONFIG.get_or_init(Config::default)
 }
 
 impl Config {
     fn normalized(mut self) -> Self {
-        self.scale_x = self.scale_x.clamp(1, 5);
+        self.scale_x = self.scale_x.clamp(1, 8);
         self.scale_y = self.scale_y.clamp(1, 5);
         self.board_width = self.board_width.clamp(4, 50);
         self.board_height = self.board_height.clamp(4, 50);

@@ -3,6 +3,7 @@ use std::time::Duration;
 use ratatui::style::Color;
 
 use crate::{
+    config::config,
     powerup::add_gravity_task,
     state::State,
     task::{add_data_task, add_task},
@@ -35,7 +36,7 @@ impl RollerPowerup {
             Duration::ZERO, // this can be done without data task but whatever
             Node { x, y, depth },
             move |state, node| {
-                let config = crate::config::config();
+                let config = config();
                 for i in 0..DIR_X.len() {
                     let new_x = node.x + DIR_X[i];
                     let new_y = node.y + DIR_Y[i];

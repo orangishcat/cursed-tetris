@@ -1,4 +1,4 @@
-use crate::{piece::HasTile, state::State};
+use crate::{config::config, piece::HasTile, state::State};
 
 const PAINT_RADIUS: usize = 4;
 
@@ -7,7 +7,7 @@ pub struct PaintballPowerup {}
 
 impl PaintballPowerup {
     pub fn on_collide(&self, cx: i8, cy: i8, state: &mut State) {
-        let config = crate::config::config();
+        let config = config();
         let center_x = cx as usize;
         let center_y = cy as usize;
         let col = state.tiles[center_x][center_y];
