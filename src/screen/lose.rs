@@ -55,7 +55,7 @@ impl LoseScreen {
             .flex(Flex::Center)
             .areas(frame.area());
         let [banner_area, stats_area, actions_area] = Layout::vertical([
-            Constraint::Length(6),
+            Constraint::Length(3),
             Constraint::Length(9),
             Constraint::Length(3),
         ])
