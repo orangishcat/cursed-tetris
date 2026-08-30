@@ -124,7 +124,9 @@ impl State {
 
     pub fn activate_powerup(&mut self, p_type: PowerUpType) {
         self.powerup.toggle_type(p_type);
-        self.piece().reset();
+        if self.powerup.count > 0 {
+            self.piece().reset();
+        }
     }
 
     pub fn construct_field(&mut self) -> Paragraph<'static> {

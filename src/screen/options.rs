@@ -79,9 +79,13 @@ impl OptionsScreen {
             Layout::vertical([Constraint::Length(config.board_height * config.scale_y + 2)])
                 .flex(Flex::Center)
                 .areas(preview_horiz);
-        let [title, buttons] = Layout::vertical([Constraint::Length(5), Constraint::Length(24)])
-            .flex(Flex::Center)
-            .areas(body);
+        let [title, desc, buttons] = Layout::vertical([
+            Constraint::Length(5),
+            Constraint::Length(3),
+            Constraint::Length(24),
+        ])
+        .flex(Flex::Center)
+        .areas(body);
         frame.render_widget(
             BigText::builder()
                 .pixel_size(PixelSize::Quadrant)
@@ -93,6 +97,13 @@ impl OptionsScreen {
                 )])])
                 .build(),
             title,
+        );
+        frame.render_widget(
+            Paragraph::new(vec![Line::from(vec![Span::from(
+                "←→ to change, r to reset to default",
+            )])])
+            .alignment(HorizontalAlignment::Center),
+            desc,
         );
 
         let areas = Layout::vertical([Constraint::Length(3); 6])
@@ -192,6 +203,7 @@ impl OptionsScreen {
             KeyCode::Down | KeyCode::Char('s') => self.selected = self.selected.next(),
             KeyCode::Left | KeyCode::Char('a') => self.adjust(-1),
             KeyCode::Right | KeyCode::Char('d') => self.adjust(1),
+            KeyCode::Char('r') => self.reset(),
             KeyCode::Enter if self.selected == OptionChoice::Back => self.go_back = true,
             KeyCode::Esc => self.go_back = true,
             _ => {}
@@ -212,6 +224,22 @@ impl OptionsScreen {
             OptionChoice::Back => return,
         };
         *value = (*value as i16 + direction as i16).clamp(min, max) as u16;
+    }
+
+    fn reset(&self) {
+        if self.selected == OptionChoice::Back {
+            return;
+        }
+        let mut config = config_mut();
+        let default = default_config();
+        match self.selected {
+            OptionChoice::ScaleX => config.scale_x = default.scale_x,
+            OptionChoice::ScaleY => config.scale_y = default.scale_y,
+            OptionChoice::BoardWidth => config.board_width = default.board_width,
+            OptionChoice::BoardHeight => config.board_height = default.board_height,
+            OptionChoice::StartLevel => config.start_level = default.start_level,
+            OptionChoice::Back => return,
+        };
     }
 
     pub fn update(&self, _state: &mut State) -> Option<AppScreen> {
