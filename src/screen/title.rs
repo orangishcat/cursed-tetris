@@ -78,7 +78,7 @@ impl TitleScreen {
         let config = config();
         let (scale_x, scale_y) = (config.scale_x, config.scale_y);
         drop(config);
-        let [content] = Layout::vertical([Constraint::Length(16 + 3 * scale_y)])
+        let [content] = Layout::vertical([Constraint::Length(17 + 3 * scale_y)])
             .flex(Flex::Center)
             .areas(frame.area());
         let [body_area] = Layout::vertical([Constraint::Length(30)])
@@ -105,7 +105,7 @@ impl TitleScreen {
             ])])
             .build();
         let [title_area, body_content] =
-            Layout::vertical([Constraint::Length(5), Constraint::Length(10)])
+            Layout::vertical([Constraint::Length(5), Constraint::Length(11)])
                 .spacing(1)
                 .flex(Flex::Center)
                 .areas(body);
@@ -173,6 +173,7 @@ impl TitleScreen {
             "W / ↑: Rotate",
             "S / ↓: Soft drop",
             "Space: Hard drop",
+            "Shift/c: Hold piece",
             "1/2/3: Use powerups",
             "Esc/p: Pause",
             "q/Ctrl+C: Quit",

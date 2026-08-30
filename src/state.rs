@@ -48,6 +48,9 @@ pub struct State {
 
     pub piece_queue: Vec<Piece>,
 
+    pub held_piece: Option<usize>,
+    pub hold_used: bool,
+
     pub gravity_dur: Duration,
 }
 
@@ -70,6 +73,8 @@ impl Default for State {
             level,
             levelup_pieces: Self::next_levelup_count(level),
             piece_queue: Self::create_pieces(),
+            held_piece: None,
+            hold_used: false,
             gravity_dur: Self::graivty_dur(level),
         }
     }
@@ -87,12 +92,8 @@ impl State {
     pub fn next_piece(&mut self) {
         self.piece().reset();
 
-        self.piece_queue_ind += 1;
-        if self.piece_queue_ind >= piece::QUEUE_SIZE - NEXT_LOOKUP {
-            self.piece_queue_ind = 0;
-            self.piece_queue.rotate_right(NEXT_LOOKUP);
-            self.piece_queue[NEXT_LOOKUP..].shuffle(&mut rand::rng());
-        }
+        self.advance_piece_queue();
+        self.hold_used = false;
 
         self.placed_pieces += 1;
         if self.placed_pieces > self.levelup_pieces {
@@ -105,6 +106,30 @@ impl State {
                 self.powerup.count += 1;
             }
         }
+    }
+
+    fn advance_piece_queue(&mut self) {
+        self.piece_queue_ind += 1;
+        if self.piece_queue_ind >= piece::QUEUE_SIZE - NEXT_LOOKUP {
+            self.piece_queue_ind = 0;
+            self.piece_queue.rotate_right(NEXT_LOOKUP);
+            self.piece_queue[NEXT_LOOKUP..].shuffle(&mut rand::rng());
+        }
+    }
+
+    pub fn hold_piece(&mut self) {
+        if self.hold_used || self.powerup.is_active() {
+            return;
+        }
+
+        let active_id = self.piece().id;
+        if let Some(held_id) = self.held_piece.replace(active_id) {
+            self.piece_queue[self.piece_queue_ind] = Piece::from_id(held_id);
+        } else {
+            self.piece().reset();
+            self.advance_piece_queue();
+        }
+        self.hold_used = true;
     }
 
     fn graivty_dur(level: u32) -> Duration {

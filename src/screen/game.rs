@@ -1,6 +1,6 @@
 use std::iter::once;
 
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, ModifierKeyCode};
 use ratatui::{
     Frame,
     layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect},
@@ -92,9 +92,10 @@ impl GameScreen {
             PowerUpType::Roller(RollerPowerup::default()),
         ];
 
-        let [score_area, level_area, powerup_area] = Layout::vertical([
+        let [score_area, level_area, hold_area, powerup_area] = Layout::vertical([
             Constraint::Length(3),
             Constraint::Length(3),
+            Constraint::Length((scale_y * 4 + 2) as u16),
             Constraint::Length(powerups.len() as u16 + 3),
         ])
         .flex(Flex::Center)
@@ -110,6 +111,16 @@ impl GameScreen {
             frame.render_widget(block, area);
             frame.render_widget(Paragraph::new(value).centered(), content_area);
         }
+
+        let hold_block = Block::bordered()
+            .title("Hold")
+            .title_alignment(HorizontalAlignment::Center);
+        if let Some(id) = state.held_piece {
+            let mut held_piece = crate::piece::Piece::from_id(id);
+            held_piece.rotate();
+            frame.render_widget(held_piece.as_widget(), hold_block.inner(hold_area));
+        }
+        frame.render_widget(hold_block, hold_area);
 
         let powerup_block = Block::bordered()
             .title("Powerup")
@@ -285,6 +296,8 @@ impl GameScreen {
         }
 
         match key.code {
+            KeyCode::Modifier(ModifierKeyCode::LeftShift | ModifierKeyCode::RightShift)
+            | KeyCode::Char('c') => state.hold_piece(),
             KeyCode::Up | KeyCode::Char('w') | KeyCode::Char('i') => self.rotate_if_valid(state),
             KeyCode::Left | KeyCode::Char('a') | KeyCode::Char('j') => {
                 self.move_if_valid(state, -1, 0)
