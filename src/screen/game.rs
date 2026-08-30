@@ -49,7 +49,7 @@ impl GameScreen {
         let [left_text, left, center, right, right_text] = Layout::horizontal([
             Constraint::Length(8),
             Constraint::Length(12),
-            Constraint::Length((board_width * scale_x + 2) as u16),
+            Constraint::Length((board_width * scale_x + 6) as u16),
             Constraint::Length(24),
             Constraint::Length(8),
         ])
@@ -150,9 +150,15 @@ impl GameScreen {
         frame.render_widget(powerup_block, powerup_area);
         frame.render_widget(powerup_display, powerup_content);
 
+        let [board_area, score_effect_area] = Layout::horizontal([
+            Constraint::Length((board_width * scale_x + 2) as u16),
+            Constraint::Length(4),
+        ])
+        .areas(center);
+
         if !state.paused {
             let game_area = state.construct_field();
-            frame.render_widget(game_area, center);
+            frame.render_widget(game_area, board_area);
         } else {
             let pause_block = Block::bordered()
                 .border_type(BorderType::Double)
@@ -161,7 +167,7 @@ impl GameScreen {
                 Layout::vertical([Constraint::Length(3), Constraint::Length(2)])
                     .spacing(1)
                     .flex(Flex::Center)
-                    .areas(pause_block.inner(center));
+                    .areas(pause_block.inner(board_area));
             let pause_title = BigText::builder()
                 .pixel_size(PixelSize::Sextant)
                 .centered()
@@ -176,10 +182,31 @@ impl GameScreen {
                 Line::from("t: Return to title"),
             ])
             .alignment(HorizontalAlignment::Center);
-            frame.render_widget(pause_block, center);
+            frame.render_widget(pause_block, board_area);
             frame.render_widget(pause_title, pause_title_area);
             frame.render_widget(pause_controls, pause_controls_area);
         }
+
+        let score_effect_lines = (0..board_height)
+            .rev()
+            .flat_map(|row| {
+                let effect = state.row_score_effects[row];
+                (0..scale_y).map(move |line| {
+                    if line + 1 == scale_y && effect > 0 {
+                        Line::from(format!("+{effect}"))
+                    } else {
+                        Line::default()
+                    }
+                })
+            })
+            .collect::<Vec<_>>();
+        let score_effect_area = Rect::new(
+            score_effect_area.x,
+            score_effect_area.y.saturating_add(1),
+            score_effect_area.width,
+            score_effect_area.height.saturating_sub(2),
+        );
+        frame.render_widget(Paragraph::new(score_effect_lines), score_effect_area);
 
         let [placed_pieces_area, next_area] = Layout::vertical([
             Constraint::Length(3),

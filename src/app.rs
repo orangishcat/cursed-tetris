@@ -15,7 +15,7 @@ use ratatui::DefaultTerminal;
 
 use crate::{config::config, screen::AppScreen, state::State, task::update_tasks};
 
-pub const FRAME_TIME: Duration = Duration::from_nanos(1_000_000_000 / 60);
+pub const FRAME_TIME: Duration = Duration::from_nanos(1_000_000_000 / 24);
 
 #[derive(Default)]
 pub struct App {

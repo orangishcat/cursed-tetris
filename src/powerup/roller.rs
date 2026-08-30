@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{ops::Add, time::Duration};
 
 use ratatui::style::Color;
 
@@ -18,6 +18,9 @@ struct Node {
     depth: i8,
 }
 
+const WAVE_DELAY: Duration = Duration::from_millis(40);
+const DELETE_DELAY: Duration = Duration::from_millis(200);
+
 const DIR_X: [i8; 8] = [1, -1, 0, 0, 1, -1, 1, -1];
 const DIR_Y: [i8; 8] = [0, 0, 1, -1, 1, -1, -1, 1];
 
@@ -27,13 +30,25 @@ impl RollerPowerup {
         if col == Color::Reset {
             return;
         }
-        Self::recursive_delete(cx, cy, 0, col, state);
-        add_task(Duration::from_millis(200), add_gravity_task, state);
+        Self::reach(cx, cy, col, 1, state);
+        add_task(Duration::from_millis(250), add_gravity_task, state);
     }
 
-    pub fn recursive_delete(x: i8, y: i8, depth: i8, col: Color, state: &mut State) {
+    fn reach(x: i8, y: i8, col: Color, depth: i8, state: &mut State) {
+        state.tiles[x as usize][y as usize] = Color::DarkGray;
+        state.score_deleted_blocks(y as usize, 1);
         add_data_task(
-            Duration::ZERO, // this can be done without data task but whatever
+            DELETE_DELAY.add(Duration::from_millis(depth as u64 * 80)),
+            (x, y),
+            |state, (x, y)| state.tiles[x as usize][y as usize] = Color::Reset,
+            state,
+        );
+        Self::schedule_expansion(x, y, col, depth + 1, state);
+    }
+
+    fn schedule_expansion(x: i8, y: i8, col: Color, depth: i8, state: &mut State) {
+        add_data_task(
+            WAVE_DELAY,
             Node { x, y, depth },
             move |state, node| {
                 let config = config();
@@ -48,14 +63,7 @@ impl RollerPowerup {
                     {
                         continue;
                     }
-                    state.tiles[new_x as usize][new_y as usize] = Color::DarkGray;
-                    state.score += 1;
-                    Self::recursive_delete(new_x, new_y, node.depth + 1, col, state);
-                    add_task(
-                        Duration::from_millis(200 + 100 * node.depth as u64),
-                        move |state| state.tiles[new_x as usize][new_y as usize] = Color::Reset,
-                        state,
-                    );
+                    Self::reach(new_x, new_y, col, node.depth, state);
                 }
             },
             state,

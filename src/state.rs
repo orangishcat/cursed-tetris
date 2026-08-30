@@ -19,7 +19,7 @@ use crate::{
     config::config,
     piece::{self, HasTile, Piece},
     powerup::{PowerUp, PowerUpType},
-    task::Task,
+    task::{Task, add_data_task},
 };
 
 pub const SOLID_STR: &str = "█";
@@ -30,9 +30,11 @@ pub const BLANK_STR: &str = " ";
 pub const _BORDERED_STR: &str = " ▕";
 
 pub const NEXT_LOOKUP: usize = 3;
+const SCORE_EFFECT_DURATION: Duration = Duration::from_millis(700);
 
 pub struct State {
     pub score: u32,
+    pub row_score_effects: Vec<u32>,
     pub tiles: Vec<Vec<Color>>,
     pub piece_queue_ind: usize,
     pub game_ended: bool,
@@ -63,6 +65,7 @@ impl Default for State {
         drop(config);
         Self {
             score: 0,
+            row_score_effects: vec![0; board_height],
             tiles: vec![vec![Color::Reset; board_height]; board_width],
             piece_queue_ind: 0,
             game_ended: false,
@@ -97,8 +100,8 @@ impl State {
 
         self.placed_pieces += 1;
         if self.placed_pieces > self.levelup_pieces {
-            self.level += 1;
             self.score += self.level * 10;
+            self.level += 1;
             self.levelup_pieces = Self::next_levelup_count(self.level);
             self.gravity_dur = Self::graivty_dur(self.level);
 
@@ -106,6 +109,24 @@ impl State {
                 self.powerup.count += 1;
             }
         }
+    }
+
+    pub fn score_deleted_blocks(&mut self, row: usize, count: u32) {
+        if count == 0 || row >= self.row_score_effects.len() {
+            return;
+        }
+        self.score += count;
+        self.row_score_effects[row] += count;
+        add_data_task(
+            SCORE_EFFECT_DURATION,
+            (row, count),
+            |state, (row, count)| {
+                if let Some(effect) = state.row_score_effects.get_mut(row) {
+                    *effect = effect.saturating_sub(count);
+                }
+            },
+            self,
+        );
     }
 
     fn advance_piece_queue(&mut self) {
@@ -258,7 +279,7 @@ impl State {
                 column.copy_within(y + 1..board_height, y);
                 column[board_height - 1] = Color::Reset;
             }
-            self.score += board_width as u32;
+            self.score_deleted_blocks(y, board_width as u32);
             break;
         }
     }
