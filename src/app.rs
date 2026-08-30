@@ -1,4 +1,4 @@
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use std::{
     io,
     time::{Duration, Instant},
@@ -34,8 +34,11 @@ impl App {
                             return Ok(());
                         }
 
-                        match key.code {
-                            KeyCode::Char('q') | KeyCode::Esc => self.should_quit = true,
+                        match (key.code, key.modifiers) {
+                            (KeyCode::Char('q'), _)
+                            | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                                self.should_quit = true
+                            }
                             _ => self.screen.handle_keypress(&mut self.state, &key),
                         }
                     }

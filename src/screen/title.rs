@@ -167,12 +167,6 @@ impl TitleScreen {
             frame.render_widget(widget, vert_right_pieces[i]);
         }
 
-        let [controls_area] = Layout::vertical([Constraint::Length(8)])
-            .flex(Flex::Center)
-            .areas(controls);
-        let controls_block = Block::bordered()
-            .title("Controls")
-            .title_alignment(HorizontalAlignment::Center);
         let lines = [
             "A / ←: Move left",
             "D / →: Move right",
@@ -180,8 +174,16 @@ impl TitleScreen {
             "S / ↓: Soft drop",
             "Space: Hard drop",
             "1/2/3: Use powerups",
+            "Esc/p: Pause",
+            "q/Ctrl+C: Quit",
         ]
         .map(|s| Line::from(vec![Span::from(s)]));
+        let [controls_area] = Layout::vertical([Constraint::Length(lines.len() as u16 + 2)])
+            .flex(Flex::Center)
+            .areas(controls);
+        let controls_block = Block::bordered()
+            .title("Controls")
+            .title_alignment(HorizontalAlignment::Center);
         let controls_para = Paragraph::new(lines.to_vec()).centered();
         frame.render_widget(controls_para, controls_block.inner(controls_area));
         frame.render_widget(controls_block, controls_area);
