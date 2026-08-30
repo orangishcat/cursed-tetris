@@ -11,6 +11,7 @@ use tui_big_text::{BigText, PixelSize};
 
 use crate::{
     config::config,
+    leaderboard::{LEADERBOARD_LIMIT, Online, online, online_mut},
     piece::{PIECE_LAYOUTS, Piece},
     screen::{
         AppScreen::{self, Game, Options, Quit},
@@ -51,6 +52,7 @@ pub struct TitleScreen {
     activated: Option<MenuChoice>,
     piece_widgets: Vec<Paragraph<'static>>,
     play_disabled: bool,
+    leaderboard_offset: usize,
 }
 
 impl Default for TitleScreen {
@@ -72,12 +74,23 @@ impl Default for TitleScreen {
             activated: None,
             piece_widgets,
             play_disabled: false,
+            leaderboard_offset: 0,
         }
     }
 }
 
 impl TitleScreen {
+    pub fn init(&mut self) {
+        let mut online = online_mut();
+        if let Some(online) = online.as_mut() {
+            online.refresh();
+            self.clamp_leaderboard_offset(online.entries().len());
+        }
+    }
+
     pub fn draw(&mut self, _state: &mut State, frame: &mut Frame) {
+        let online = online();
+        let online = online.as_ref();
         self.play_disabled = terminal_too_small(frame.area());
         let config = config();
         let (scale_x, scale_y, high_score) = (config.scale_x, config.scale_y, config.high_score);
@@ -89,10 +102,11 @@ impl TitleScreen {
             .flex(Flex::Center)
             .areas(content);
 
+        let right_width = if online.is_some() { 29 } else { 5 * scale_x };
         let [left_pieces, body, right_pieces] = Layout::horizontal([
             Constraint::Length(5 * scale_x),
             Constraint::Length(57),
-            Constraint::Length(5 * scale_x),
+            Constraint::Length(right_width),
         ])
         .spacing(4)
         .flex(Flex::Center)
@@ -172,17 +186,20 @@ impl TitleScreen {
                 .flex(Flex::Center)
                 .areas(left_pieces);
 
-        let vert_right_pieces: [Rect; 3] =
-            Layout::vertical([Constraint::Length(4 * scale_x)].repeat(half_len))
-                .flex(Flex::Center)
-                .areas(right_pieces);
-
         for (i, widget) in self.piece_widgets[0..half_len].iter().enumerate() {
             frame.render_widget(widget, vert_left_pieces[i]);
         }
 
-        for (i, widget) in self.piece_widgets[half_len..].iter().enumerate() {
-            frame.render_widget(widget, vert_right_pieces[i]);
+        if let Some(online) = online {
+            self.draw_leaderboard(frame, right_pieces, online);
+        } else {
+            let vert_right_pieces: [Rect; 3] =
+                Layout::vertical([Constraint::Length(4 * scale_x)].repeat(half_len))
+                    .flex(Flex::Center)
+                    .areas(right_pieces);
+            for (i, widget) in self.piece_widgets[half_len..].iter().enumerate() {
+                frame.render_widget(widget, vert_right_pieces[i]);
+            }
         }
 
         let lines = [
@@ -213,6 +230,8 @@ impl TitleScreen {
     }
 
     pub fn handle_keypress(&mut self, _state: &mut State, key: &KeyEvent) {
+        let online = online();
+        let online = online.as_ref();
         match key.code {
             KeyCode::Up | KeyCode::Char('w') => self.selected = self.selected.previous(),
             KeyCode::Down | KeyCode::Char('s') => self.selected = self.selected.next(),
@@ -222,6 +241,13 @@ impl TitleScreen {
             KeyCode::Char('p') if !self.play_disabled => self.activated = Some(MenuChoice::Play),
             KeyCode::Char('o') => self.activated = Some(MenuChoice::Options),
             KeyCode::Char('q') => self.activated = Some(MenuChoice::Quit),
+            KeyCode::Left | KeyCode::Char('a') if online.is_some() => {
+                self.leaderboard_offset = self.leaderboard_offset.saturating_sub(1);
+            }
+            KeyCode::Right | KeyCode::Char('d') if let Some(online) = online => {
+                self.leaderboard_offset =
+                    (self.leaderboard_offset + 1).min(online.entries().len().saturating_sub(10));
+            }
             _ => {}
         }
     }
@@ -237,5 +263,57 @@ impl TitleScreen {
             Some(MenuChoice::Options) => Some(Options(OptionsScreen::default())),
             None => None,
         }
+    }
+
+    fn clamp_leaderboard_offset(&mut self, entry_count: usize) {
+        self.leaderboard_offset = self.leaderboard_offset.min(entry_count.saturating_sub(10));
+    }
+
+    fn draw_leaderboard(&self, frame: &mut Frame, area: Rect, online: &Online) {
+        let entries = online.entries();
+        let end = (self.leaderboard_offset + 10).min(entries.len());
+        let title = if entries.is_empty() {
+            "Leaderboard".into()
+        } else {
+            format!(
+                "Leaderboard {}-{}/{LEADERBOARD_LIMIT}",
+                self.leaderboard_offset + 1,
+                end
+            )
+        };
+        let lines = if let Some(error) = online.load_error() {
+            vec![Line::styled(
+                format!("Unavailable: {error}"),
+                Style::default().fg(Color::LightRed),
+            )]
+        } else if entries.is_empty() {
+            vec![Line::from("No scores yet")]
+        } else {
+            entries[self.leaderboard_offset..end]
+                .iter()
+                .map(|entry| {
+                    let style = if entry.is_current && entry.rank <= 20 {
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default()
+                    };
+                    Line::styled(
+                        format!(
+                            "{:>2} {:<12} {:>10}",
+                            entry.rank, entry.username, entry.score
+                        ),
+                        style,
+                    )
+                })
+                .collect()
+        };
+        let block = Block::bordered()
+            .title(title)
+            .title_bottom("A/D scroll")
+            .title_alignment(HorizontalAlignment::Center);
+        frame.render_widget(Paragraph::new(lines), block.inner(area));
+        frame.render_widget(block, area);
     }
 }

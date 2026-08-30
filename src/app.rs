@@ -26,6 +26,7 @@ pub struct App {
 
 impl App {
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
+        self.screen.init(&mut self.state);
         let enhanced_keyboard = supports_keyboard_enhancement().unwrap_or(false);
         if enhanced_keyboard {
             execute!(
@@ -54,8 +55,10 @@ impl App {
                             }
 
                             match (key.code, key.modifiers) {
-                                (KeyCode::Char('q'), _)
-                                | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                                (KeyCode::Char('q'), _) if !self.screen.captures_text_input() => {
+                                    self.should_quit = true
+                                }
+                                (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
                                     self.should_quit = true
                                 }
                                 _ => self.screen.handle_keypress(&mut self.state, &key),

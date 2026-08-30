@@ -82,8 +82,11 @@ pub enum AppScreen {
 
 impl AppScreen {
     pub fn init(&mut self, state: &mut State) {
-        if let Self::Game(screen) = self {
-            screen.init(state)
+        match self {
+            Self::Game(screen) => screen.init(state),
+            Self::Title(screen) => screen.init(),
+            Self::Lose(screen) => screen.init(state),
+            Self::Options(_) | Self::Quit => {}
         }
     }
     pub fn draw(&mut self, state: &mut State, frame: &mut Frame) {
@@ -121,6 +124,10 @@ impl AppScreen {
 
     pub fn should_quit(&self) -> bool {
         matches!(self, Self::Quit)
+    }
+
+    pub fn captures_text_input(&self) -> bool {
+        matches!(self, Self::Lose(screen) if screen.captures_text_input())
     }
 }
 
