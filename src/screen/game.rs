@@ -6,7 +6,7 @@ use ratatui::{
     layout::{Constraint, Flex, HorizontalAlignment, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span},
-    widgets::{Block, Paragraph},
+    widgets::{Block, BorderType, Clear, Paragraph},
 };
 use tui_big_text::{BigText, PixelSize};
 
@@ -15,15 +15,18 @@ use crate::{
     piece::HasTile,
     powerup::{BombPowerup, PaintballPowerup, PowerUp, PowerUpType, RollerPowerup},
     screen::{
-        AppScreen::{self, Lose},
+        AppScreen::{self, Lose, Title},
         lose::LoseScreen,
+        title::TitleScreen,
     },
     state::{NEXT_LOOKUP, State},
     task::add_task,
 };
 
 #[derive(Default)]
-pub struct GameScreen {}
+pub struct GameScreen {
+    to_title: bool,
+}
 
 impl GameScreen {
     pub fn init(&mut self, state: &mut State) {
@@ -169,9 +172,39 @@ impl GameScreen {
             );
         }
         frame.render_widget(next_block, next_area);
+
+        if state.paused {
+            let [popup_row] = Layout::vertical([Constraint::Length(5)])
+                .flex(Flex::Center)
+                .areas(frame.area());
+            let [popup_area] = Layout::horizontal([Constraint::Length(24)])
+                .flex(Flex::Center)
+                .areas(popup_row);
+            let pause_popup = Paragraph::new(vec![
+                Line::from("Esc/p: Resume"),
+                Line::from("t: Return to title"),
+            ])
+            .centered()
+            .block(
+                Block::bordered()
+                    .title("Paused")
+                    .title_alignment(HorizontalAlignment::Center)
+                    .border_type(BorderType::Double)
+                    .border_style(Style::default().fg(Color::LightYellow)),
+            );
+
+            frame.render_widget(Clear, popup_area);
+            frame.render_widget(pause_popup, popup_area);
+        }
     }
 
     pub fn update(&mut self, state: &mut State) -> Option<AppScreen> {
+        if self.to_title {
+            return Some(Title(TitleScreen::default()));
+        }
+        if state.paused {
+            return None;
+        }
         let collided = self.check_collision(state);
         if collided && state.game_ended {
             return Some(Lose(LoseScreen::default()));
@@ -225,10 +258,12 @@ impl GameScreen {
         add_task(
             state.gravity_dur,
             |state| {
-                if state.powerup.is_active() {
-                    state.powerup.nudge(0, -1);
-                } else {
-                    state.piece().nudge(0, -1);
+                if !state.paused {
+                    if state.powerup.is_active() {
+                        state.powerup.nudge(0, -1);
+                    } else {
+                        state.piece().nudge(0, -1);
+                    }
                 }
 
                 Self::add_gravity_task(state);
@@ -238,6 +273,17 @@ impl GameScreen {
     }
 
     pub fn handle_keypress(&mut self, state: &mut State, key: &KeyEvent) {
+        if matches!(key.code, KeyCode::Esc | KeyCode::Char('p')) {
+            state.paused = !state.paused;
+            return;
+        }
+        if state.paused {
+            if matches!(key.code, KeyCode::Char('t')) {
+                self.to_title = true;
+            }
+            return;
+        }
+
         match key.code {
             KeyCode::Up | KeyCode::Char('w') | KeyCode::Char('i') => self.rotate_if_valid(state),
             KeyCode::Left | KeyCode::Char('a') | KeyCode::Char('j') => {

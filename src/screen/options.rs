@@ -131,7 +131,12 @@ impl OptionsScreen {
                 default_config.start_level.to_string(),
                 OptionChoice::StartLevel,
             ),
-            ("", "Back".to_string(), "".to_string(), OptionChoice::Back),
+            (
+                "",
+                "Back (Esc)".to_string(),
+                "".to_string(),
+                OptionChoice::Back,
+            ),
         ];
 
         for (index, (label, value, default_value, choice)) in choices.into_iter().enumerate() {
@@ -188,7 +193,7 @@ impl OptionsScreen {
             KeyCode::Left | KeyCode::Char('a') => self.adjust(-1),
             KeyCode::Right | KeyCode::Char('d') => self.adjust(1),
             KeyCode::Enter if self.selected == OptionChoice::Back => self.go_back = true,
-            KeyCode::Char('b') | KeyCode::Char('t') => self.go_back = true,
+            KeyCode::Esc => self.go_back = true,
             _ => {}
         }
     }

@@ -37,14 +37,15 @@ pub struct State {
     pub tiles: Vec<Vec<Color>>,
     pub piece_queue_ind: usize,
     pub game_ended: bool,
-    pub placed_pieces: i32,
+    pub paused: bool,
+    pub placed_pieces: u32,
     pub powerup: PowerUp,
 
     pub task_queue: BinaryHeap<Reverse<Task>>,
 
-    pub level: i32,
+    pub level: u32,
 
-    pub levelup_pieces: i32,
+    pub levelup_pieces: u32,
 
     pub piece_queue: Vec<Piece>,
 
@@ -65,6 +66,7 @@ impl Default for State {
             tiles: vec![vec![Color::Reset; board_height]; board_width],
             piece_queue_ind: 0,
             game_ended: false,
+            paused: false,
             placed_pieces: 0,
             powerup: PowerUp::default(),
             task_queue: BinaryHeap::new(),
@@ -98,6 +100,7 @@ impl State {
         self.placed_pieces += 1;
         if self.placed_pieces > self.levelup_pieces {
             self.level += 1;
+            self.score += self.level * 10;
             self.levelup_pieces = self.next_levelup_count();
             self.gravity_dur =  // custom exponenetial curve for gravity ms
                 Duration::from_millis((750.0 * (self.level as f64).powf(-0.68144)) as u64);
