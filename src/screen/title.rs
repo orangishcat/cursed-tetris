@@ -246,7 +246,7 @@ impl TitleScreen {
             }
             KeyCode::Right | KeyCode::Char('d') if let Some(online) = online => {
                 self.leaderboard_offset =
-                    (self.leaderboard_offset + 1).min(online.entries().len().saturating_sub(10));
+                    (self.leaderboard_offset + 1).min(online.entries().len().saturating_sub(20));
             }
             _ => {}
         }
@@ -269,9 +269,10 @@ impl TitleScreen {
         self.leaderboard_offset = self.leaderboard_offset.min(entry_count.saturating_sub(10));
     }
 
-    fn draw_leaderboard(&self, frame: &mut Frame, area: Rect, online: &Online) {
+    fn draw_leaderboard(&self, frame: &mut Frame, horiz: Rect, online: &Online) {
+        let [area] = Layout::vertical([Constraint::Length(22)]).areas(horiz);
         let entries = online.entries();
-        let end = (self.leaderboard_offset + 10).min(entries.len());
+        let end = (self.leaderboard_offset + 20).min(entries.len());
         let title = if entries.is_empty() {
             "Leaderboard".into()
         } else {
@@ -289,16 +290,23 @@ impl TitleScreen {
         } else if entries.is_empty() {
             vec![Line::from("No scores yet")]
         } else {
-            entries[self.leaderboard_offset..end]
-                .iter()
-                .map(|entry| {
-                    let style = if entry.is_current && entry.rank <= 20 {
-                        Style::default()
-                            .fg(Color::Yellow)
-                            .add_modifier(Modifier::BOLD)
-                    } else {
-                        Style::default()
-                    };
+            (self.leaderboard_offset..end)
+                .map(|rank| {
+                    let entry = &entries[rank];
+                    let style =
+                        (|s: Style| {
+                            if rank == 0 {
+                                s.fg(Color::LightYellow) // gold
+                            } else if rank == 1 {
+                                s.fg(Color::Rgb(192, 192, 192)) // silver
+                            } else if rank == 2 {
+                                s.fg(Color::Rgb(205, 127, 50)) // bronze
+                            } else if entry.is_current {
+                                s
+                            } else {
+                                s.fg(Color::Gray).remove_modifier(Modifier::BOLD)
+                            }
+                        })(Style::default().add_modifier(Modifier::BOLD));
                     Line::styled(
                         format!(
                             "{:>2} {:<12} {:>10}",

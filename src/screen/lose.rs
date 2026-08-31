@@ -4,7 +4,7 @@ use ratatui::{
     layout::{Constraint, Flex, HorizontalAlignment, Layout},
     style::{Color, Modifier, Style},
     text::Line,
-    widgets::{Block, BorderType, Paragraph},
+    widgets::{Block, BorderType, Paragraph, Wrap},
 };
 use std::time::Duration;
 use tui_big_text::{BigText, PixelSize};
@@ -95,17 +95,30 @@ impl LoseScreen {
 
     pub fn draw(&self, state: &mut State, frame: &mut Frame) {
         let high_score = config().high_score;
-        let [content] = Layout::vertical([Constraint::Length(19)])
+        let has_submission = !matches!(self.submission, SubmissionState::None);
+        let content_height = if has_submission { 23 } else { 15 };
+        let [content] = Layout::vertical([Constraint::Length(content_height)])
             .flex(Flex::Center)
             .areas(frame.area());
-        let [banner_area, stats_area, submission_area, actions_area] = Layout::vertical([
+        let mut constraints = vec![
             Constraint::Length(3),
             Constraint::Length(7),
             Constraint::Length(3),
-            Constraint::Length(3),
-        ])
-        .spacing(1)
-        .areas(content);
+        ];
+        if has_submission {
+            constraints.insert(2, Constraint::Length(7));
+        }
+        let areas = Layout::vertical(constraints).spacing(1).split(content);
+        let banner_area = areas[0];
+        let stats_area = areas[1];
+        let actions_area = *areas.last().expect("lose screen always has action area");
+
+        if has_submission {
+            let [submission_area] = Layout::horizontal([Constraint::Length(48)])
+                .flex(Flex::Center)
+                .areas(areas[2]);
+            self.draw_submission(frame, submission_area);
+        }
 
         let game_over = BigText::builder()
             .pixel_size(PixelSize::Sextant)
@@ -145,8 +158,6 @@ impl LoseScreen {
             );
         }
 
-        self.draw_submission(frame, submission_area);
-
         let [actions] = Layout::horizontal([Constraint::Length(54)])
             .flex(Flex::Center)
             .areas(actions_area);
@@ -183,8 +194,9 @@ impl LoseScreen {
     }
 
     pub fn handle_keypress(&mut self, state: &mut State, key: &KeyEvent) {
-        if matches!(self.submission, SubmissionState::Eligible { .. }) {
-            self.handle_submission(state.score, key);
+        if matches!(self.submission, SubmissionState::Eligible { .. })
+            && self.handle_submission(state.score, key)
+        {
             return;
         }
         match key.code {
@@ -220,10 +232,10 @@ impl LoseScreen {
         }
     }
 
-    fn handle_submission(&mut self, score: u32, key: &KeyEvent) {
+    fn handle_submission(&mut self, score: u32, key: &KeyEvent) -> bool {
         if key.code == KeyCode::Esc {
             self.submission = SubmissionState::Skipped;
-            return;
+            return true;
         }
 
         let SubmissionState::Eligible {
@@ -232,36 +244,38 @@ impl LoseScreen {
             error,
         } = &mut self.submission
         else {
-            return;
+            return false;
         };
         if qualification.username.is_none() {
             match key.code {
                 KeyCode::Backspace => {
                     input.pop();
                     *error = None;
-                    return;
+                    return true;
                 }
                 KeyCode::Char(character)
-                    if character.is_ascii() && !character.is_ascii_control() =>
+                    if character.is_ascii_alphanumeric()
+                        || character == '_'
+                        || character == '-' =>
                 {
                     if input.len() < USERNAME_MAX_LEN {
                         input.push(character);
                         *error = None;
                     }
-                    return;
+                    return true;
                 }
                 _ => {}
             }
         }
         if key.code != KeyCode::Enter {
-            return;
+            return true;
         }
 
         let username = qualification.username.is_none().then_some(input.clone());
         let mut online = online_mut();
         let Some(online) = online.as_mut() else {
             self.submission = SubmissionState::Error("Leaderboard unavailable.".into());
-            return;
+            return true;
         };
         match online.submit(score, username.as_deref()) {
             Ok(rank) => self.submission = SubmissionState::Submitted(rank),
@@ -270,7 +284,8 @@ impl LoseScreen {
                     *error = Some(message);
                 }
             }
-        }
+        };
+        return true;
     }
 
     fn draw_submission(&self, frame: &mut Frame, area: ratatui::layout::Rect) {
@@ -282,34 +297,46 @@ impl LoseScreen {
                 error,
             } => {
                 let prompt = qualification.username.as_ref().map_or_else(
-                    || format!("New #{} score — Name: {input}_", qualification.rank),
+                    || format!("You got a #{} score on the leaderboard! Type a name and press Enter to submit your score, otherwise Esc to skip submission.\nName: {input}_", qualification.rank),
                     |username| {
                         format!(
-                            "New #{} score as {username} — Enter: submit / Esc: skip",
+                            "\nNew #{} score as {username}, submit?\nEnter: submit / Esc: skip",
                             qualification.rank
                         )
                     },
                 );
                 let message = error
                     .as_ref()
-                    .map_or(prompt.clone(), |error| format!("{prompt}  {error}"));
-                (message, Style::default().fg(Color::Yellow))
+                    .map_or(prompt.clone(), |error| format!("Name: {input}_\n{error}"));
+                (
+                    message,
+                    Style::default().fg(if error.is_some() {
+                        Color::LightRed
+                    } else {
+                        Color::LightYellow
+                    }),
+                )
             }
             SubmissionState::Submitted(rank) => (
-                format!("Score submitted at rank #{rank}."),
+                format!("\nScore submitted at rank #{rank}."),
                 Style::default().fg(Color::Green),
             ),
-            SubmissionState::Skipped => ("Score not submitted.".into(), Style::default()),
+            SubmissionState::Skipped => ("\nScore submission skipped".into(), Style::default()),
             SubmissionState::Error(error) => (
-                format!("Leaderboard unavailable: {error}"),
+                format!("\nLeaderboard unavailable: {error}"),
                 Style::default().fg(Color::LightRed),
             ),
         };
         frame.render_widget(
             Paragraph::new(message)
                 .centered()
+                .wrap(Wrap { trim: true })
                 .style(style)
-                .block(Block::bordered().title("Online leaderboard")),
+                .block(
+                    Block::bordered()
+                        .title("Score submission")
+                        .title_alignment(HorizontalAlignment::Center),
+                ),
             area,
         );
     }

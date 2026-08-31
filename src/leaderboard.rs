@@ -99,6 +99,9 @@ impl Online {
     }
 
     pub fn qualification(&self, score: u32) -> Result<Option<Qualification>, String> {
+        if score < 50 {
+            return Ok(None);
+        }
         let connection = self
             .connection
             .lock()
@@ -281,7 +284,9 @@ pub fn validate_username(username: &str) -> Result<(), String> {
         return Err("Use only letters, numbers, underscores, or hyphens.".into());
     }
     if username.is_inappropriate() {
-        return Err("Please choose a different username.".into());
+        return Err(
+            "Username might be inappropriate, please choose a different name. Sorry :(".into(),
+        );
     }
     Ok(())
 }
