@@ -78,10 +78,24 @@ impl OptionsScreen {
             Layout::vertical([Constraint::Length(config.board_height * config.scale_y + 2)])
                 .flex(Flex::Center)
                 .areas(preview_horiz);
+
+        let mut description = vec![Line::from("←→ to change, r to reset to default")];
+        if online().is_some() && !config.has_default_submission_settings() {
+            description.push(Line::from(""));
+            description.push(Line::styled(
+                "Scores will not be submitted with a custom",
+                Style::default().fg(Color::Red),
+            ));
+            description.push(Line::styled(
+                "board size or starting level.",
+                Style::default().fg(Color::Red),
+            ));
+        }
+
         let [title, desc, buttons] = Layout::vertical([
             Constraint::Length(3),
-            Constraint::Length(2),
-            Constraint::Length(24),
+            Constraint::Length(description.len() as u16 + 1),
+            Constraint::Length(22),
         ])
         .spacing(1)
         .flex(Flex::Center)
@@ -98,13 +112,6 @@ impl OptionsScreen {
                 .build(),
             title,
         );
-        let mut description = vec![Line::from("←→ to change, r to reset to default")];
-        if online().is_some() && !config.has_default_submission_settings() {
-            description.push(Line::styled(
-                "Scores will not be submitted with a custom board size or starting level.",
-                Style::default().fg(Color::Red),
-            ));
-        }
         frame.render_widget(
             Paragraph::new(description).alignment(HorizontalAlignment::Center),
             desc,
