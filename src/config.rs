@@ -50,7 +50,7 @@ impl Config {
         self.scale_y = self.scale_y.clamp(1, 5);
         self.board_width = self.board_width.clamp(4, 50);
         self.board_height = self.board_height.clamp(4, 50);
-        self.start_level = self.start_level.clamp(0, 30);
+        self.start_level = self.start_level.clamp(1, 30);
         self
     }
 

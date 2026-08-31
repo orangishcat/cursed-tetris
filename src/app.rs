@@ -51,18 +51,18 @@ impl App {
                     loop {
                         if let Event::Key(key) = event::read()? {
                             // Some platforms emit Press, Repeat, and Release events.
-                            if key.kind != KeyEventKind::Press {
-                                return Ok(());
-                            }
-
-                            match (key.code, key.modifiers) {
-                                (KeyCode::Char('q'), _) if !self.screen.captures_text_input() => {
-                                    self.should_quit = true
+                            if key.kind == KeyEventKind::Press {
+                                match (key.code, key.modifiers) {
+                                    (KeyCode::Char('q'), _)
+                                        if !self.screen.captures_text_input() =>
+                                    {
+                                        self.should_quit = true
+                                    }
+                                    (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                                        self.should_quit = true
+                                    }
+                                    _ => self.screen.handle_keypress(&mut self.state, &key),
                                 }
-                                (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
-                                    self.should_quit = true
-                                }
-                                _ => self.screen.handle_keypress(&mut self.state, &key),
                             }
                         }
 
