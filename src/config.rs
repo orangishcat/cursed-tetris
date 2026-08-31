@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     path::PathBuf,
-    sync::{LazyLock, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{
+        LazyLock, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -31,6 +34,11 @@ impl Default for Config {
 
 static CONFIG: LazyLock<RwLock<Config>> = LazyLock::new(|| RwLock::new(Config::load()));
 static DEFAULT_CONFIG: OnceLock<Config> = OnceLock::new();
+static PERSISTENCE_ENABLED: AtomicBool = AtomicBool::new(true);
+
+pub fn set_persistence_enabled(enabled: bool) {
+    PERSISTENCE_ENABLED.store(enabled, Ordering::Relaxed);
+}
 
 pub fn config() -> RwLockReadGuard<'static, Config> {
     CONFIG.read().expect("config lock poisoned")
@@ -45,6 +53,13 @@ pub fn default_config() -> &'static Config {
 }
 
 impl Config {
+    pub fn has_default_submission_settings(&self) -> bool {
+        let default = default_config();
+        self.board_width == default.board_width
+            && self.board_height == default.board_height
+            && self.start_level == default.start_level
+    }
+
     fn normalized(mut self) -> Self {
         self.scale_x = self.scale_x.clamp(1, 8);
         self.scale_y = self.scale_y.clamp(1, 5);
@@ -62,6 +77,9 @@ impl Config {
     }
 
     pub fn load() -> Config {
+        if !PERSISTENCE_ENABLED.load(Ordering::Relaxed) {
+            return Self::default();
+        }
         let Some(path) = Self::path() else {
             return Self::default();
         };
@@ -74,6 +92,9 @@ impl Config {
     }
 
     pub fn save(&self) {
+        if !PERSISTENCE_ENABLED.load(Ordering::Relaxed) {
+            return;
+        }
         let Some(path) = Self::path() else { return };
         let Some(parent) = path.parent() else { return };
         if fs::create_dir_all(parent).is_err() {

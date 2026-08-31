@@ -8,6 +8,7 @@ mod state;
 mod task;
 use std::{env, error::Error, ffi::OsString, path::PathBuf, process};
 
+use config::set_persistence_enabled;
 use leaderboard::{Online, set_online};
 
 const USAGE: &str = "Usage: cursed-tetris [--online DATABASE --id PLAYER_ID]";
@@ -77,6 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("{USAGE}");
         return Ok(());
     }
+    set_persistence_enabled(args.online.is_none());
     let online = match (args.online, args.id) {
         (Some(path), Some(id)) => Some(Online::open(&path, id)?),
         (None, None) => None,

@@ -11,6 +11,7 @@ use tui_big_text::{BigText, PixelSize};
 
 use crate::{
     config::{config, config_mut, default_config},
+    leaderboard::online,
     screen::{AppScreen, render_size_warning, terminal_too_small, title::TitleScreen},
     state::State,
 };
@@ -79,7 +80,7 @@ impl OptionsScreen {
                 .areas(preview_horiz);
         let [title, desc, buttons] = Layout::vertical([
             Constraint::Length(3),
-            Constraint::Length(1),
+            Constraint::Length(2),
             Constraint::Length(24),
         ])
         .spacing(1)
@@ -97,9 +98,15 @@ impl OptionsScreen {
                 .build(),
             title,
         );
+        let mut description = vec![Line::from("←→ to change, r to reset to default")];
+        if online().is_some() && !config.has_default_submission_settings() {
+            description.push(Line::styled(
+                "Scores will not be submitted with a custom board size or starting level.",
+                Style::default().fg(Color::Red),
+            ));
+        }
         frame.render_widget(
-            Paragraph::new(vec![Line::from("←→ to change, r to reset to default")])
-                .alignment(HorizontalAlignment::Center),
+            Paragraph::new(description).alignment(HorizontalAlignment::Center),
             desc,
         );
 

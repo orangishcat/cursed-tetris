@@ -78,6 +78,10 @@ impl LoseScreen {
     }
 
     pub fn init(&mut self, state: &State) {
+        if !config().has_default_submission_settings() {
+            self.submission = SubmissionState::None;
+            return;
+        }
         let online = online();
         self.submission = match online.as_ref() {
             Some(online) => match online.qualification(state.score) {
@@ -285,7 +289,7 @@ impl LoseScreen {
                 }
             }
         };
-        return true;
+        true
     }
 
     fn draw_submission(&self, frame: &mut Frame, area: ratatui::layout::Rect) {

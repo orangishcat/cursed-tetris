@@ -11,7 +11,7 @@ use tui_big_text::{BigText, PixelSize};
 
 use crate::{
     config::config,
-    leaderboard::{LEADERBOARD_LIMIT, Online, online, online_mut},
+    leaderboard::{LEADERBOARD_LIMIT, LeaderboardEntry, Online, online, online_mut},
     piece::{PIECE_LAYOUTS, Piece},
     screen::{
         AppScreen::{self, Game, Options, Quit},
@@ -294,19 +294,7 @@ impl TitleScreen {
                 .map(|rank| {
                     let entry = &entries[rank];
                     let style =
-                        (|s: Style| {
-                            if rank == 0 {
-                                s.fg(Color::LightYellow) // gold
-                            } else if rank == 1 {
-                                s.fg(Color::Rgb(192, 192, 192)) // silver
-                            } else if rank == 2 {
-                                s.fg(Color::Rgb(205, 127, 50)) // bronze
-                            } else if entry.is_current {
-                                s
-                            } else {
-                                s.fg(Color::Gray).remove_modifier(Modifier::BOLD)
-                            }
-                        })(Style::default().add_modifier(Modifier::BOLD));
+                        get_lb_color(Style::default().add_modifier(Modifier::BOLD), &rank, entry);
                     Line::styled(
                         format!(
                             "{:>2} {:<12} {:>10}",
@@ -323,5 +311,19 @@ impl TitleScreen {
             .title_alignment(HorizontalAlignment::Center);
         frame.render_widget(Paragraph::new(lines), block.inner(area));
         frame.render_widget(block, area);
+    }
+}
+
+fn get_lb_color(s: Style, rank: &usize, entry: &LeaderboardEntry) -> Style {
+    if *rank == 0 {
+        s.fg(Color::LightYellow) // gold
+    } else if *rank == 1 {
+        s.fg(Color::Rgb(192, 192, 192)) // silver
+    } else if *rank == 2 {
+        s.fg(Color::Rgb(205, 127, 50)) // bronze
+    } else if entry.is_current {
+        s
+    } else {
+        s.fg(Color::Gray).remove_modifier(Modifier::BOLD)
     }
 }
