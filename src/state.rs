@@ -78,7 +78,7 @@ impl Default for State {
             piece_queue: Self::create_pieces(),
             held_piece: None,
             hold_used: false,
-            gravity_dur: Self::graivty_dur(level),
+            gravity_dur: Self::gravity_dur(level),
         }
     }
 }
@@ -103,7 +103,7 @@ impl State {
             self.score += self.level * 10;
             self.level += 1;
             self.levelup_pieces = Self::next_levelup_count(self.level);
-            self.gravity_dur = Self::graivty_dur(self.level);
+            self.gravity_dur = Self::gravity_dur(self.level);
 
             if self.level.is_multiple_of(3) {
                 self.powerup.count += 1;
@@ -153,7 +153,7 @@ impl State {
         self.hold_used = true;
     }
 
-    fn graivty_dur(level: u32) -> Duration {
+    fn gravity_dur(level: u32) -> Duration {
         Duration::from_millis((750.0 * 1.0 / level as f32) as u64)
     }
 
