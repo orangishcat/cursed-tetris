@@ -4,27 +4,38 @@ A terminal tetris game made using Ratatui and Crossterm in Rust, with some power
 
 The implementation is pretty barebones, and mostly just an experience for me to learn Rust.
 
+| ![Title Screen](title.png) | ![Gameplay](gameplay.png) |
+| -------------------------- | ------------------------- |
+
+## Play online!
+
+1. Generate an SSH key if you haven't already, using `ssh-keygen`
+2. `ssh play@cursedtetris.orangishcat.dev`; your SSH key is your identity.
+
+Server may or may not be online, or full, or whatever. You can always play offline.
+
 **Note: Maximize your terminal when running the program!**
 
-| ![Title Screen](title.png) | ![Gameplay](gameplay.png) |
-|---|---|
-
-## Download instructions
+## Download instructions (for playing offline)
 
 **Linux/MacOS**
+
+**For MacOS, only Apple Silicon is supported as of right now**
 
 1. Download the Linux or MacOS build of the [latest release](https://github.com/orangishcat/cursed-tetris/releases/latest)
 2. Extract the tarball.
 3. Open the terminal and change directory into the extracted directory using `cd`.
-4. Run `/cursed-tetris` from the command line.
-  - (On MacOS, you may need to self-sign and unquarantine the binary first.)
+4. Run `./cursed-tetris` from the command line.
+
+- (On MacOS, you may need to unquarantine and/or self-sign the binary first.)
 
 **Windows**
 
 1. Download the Windows exe of the [latest release](https://github.com/orangishcat/cursed-tetris/releases/latest).
-2. Double click the `.exe`.
+2. Extract the zip and navigate into the extracted folder.
+3. Double click the `.exe`/application.
 
-## Online leaderboard
+## Self-hosting the online leaderboard
 
 Run the game with a shared SQLite database and a stable player ID to enable the online
 leaderboard:
