@@ -11,7 +11,7 @@ It is recommended to use a [Nerd Font](https://www.nerdfonts.com/) so that all t
 
 ## Play online!
 
-1. Generate an SSH key if you haven't already, using `ssh-keygen`
+1. Generate an SSH key if you don't have one already, using `ssh-keygen`
 2. `ssh play@cursedtetris.orangishcat.dev`; your SSH key is your identity.
 
 Server may or may not be online, or full, or whatever. No guarantees; I'm not very good with server infrastructure. You can always play offline.
