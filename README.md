@@ -4,6 +4,8 @@ A terminal tetris game made using Ratatui and Crossterm in Rust, with some power
 
 The implementation is pretty barebones, and mostly just an experience for me to learn Rust.
 
+It is recommended to use a [Nerd Font](https://www.nerdfonts.com/) so that all text renders correctly.
+
 | ![Title Screen](title.png) | ![Gameplay](gameplay.png) |
 | -------------------------- | ------------------------- |
 
