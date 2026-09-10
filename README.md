@@ -4,9 +4,9 @@ A terminal tetris game made using Ratatui and Crossterm in Rust, with some power
 
 This is my first Rust project! I built this mainly to learn Rust, so the implementation is pretty basic.
 
-<span style="color:gray;font-size:8px">Star the repo if you liked the game!</span>
-
 [Blog post](https://orangishcat.dev/blog/cursed-tetris)
+
+<sub><sup>Star the repo if you liked the game!</sup></sub>
 
 | ![Title Screen](title.png) | ![Gameplay](gameplay.png) |
 | -------------------------- | ------------------------- |
