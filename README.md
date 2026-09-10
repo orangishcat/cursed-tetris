@@ -1,10 +1,12 @@
 # Cursed Tetris
 
-A terminal tetris game made using Ratatui and Crossterm in Rust, with some powerups for extra variety.
+A terminal tetris game made using Ratatui and Crossterm in Rust, with some powerups for extra variety. It is recommended to use a [Nerd Font](https://www.nerdfonts.com/) so that all text renders correctly.
 
-The implementation is pretty barebones, and mostly just an experience for me to learn Rust.
+This is my first Rust project! I built this mainly to learn Rust, so the implementation is pretty basic.
 
-It is recommended to use a [Nerd Font](https://www.nerdfonts.com/) so that all text renders correctly.
+<span style="color:gray;font-size:8px">Star the repo if you liked the game!</span>
+
+[Blog post](https://orangishcat.dev/blog/cursed-tetris)
 
 | ![Title Screen](title.png) | ![Gameplay](gameplay.png) |
 | -------------------------- | ------------------------- |
